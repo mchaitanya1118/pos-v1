@@ -289,7 +289,7 @@ export default function MenuPage() {
         if (existingCat) {
           categoryIdToUse = existingCat.id;
         } else {
-          const newCatId = `cat_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          const newCatId = crypto.randomUUID();
           const newCategory: MenuCategory = {
             id: newCatId,
             name: cat.name,
@@ -305,7 +305,7 @@ export default function MenuPage() {
         for (const item of cat.items) {
           const matchedImage = presetImages.find(p => p.name === item.presetImage)?.url || presetImages[0].url;
           const newItem: MenuItem = {
-            id: `m_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+            id: crypto.randomUUID(),
             name: item.name,
             categoryId: categoryIdToUse,
             description: item.description,

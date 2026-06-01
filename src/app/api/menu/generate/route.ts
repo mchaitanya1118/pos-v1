@@ -53,9 +53,9 @@ Respond strictly in valid raw JSON matching this schema. Do not enclose in markd
   ]
 }`;
 
-      // Call official Gemini 2.5 Flash Vision API
+      // Call official Gemini 1.5 Flash Vision API
       const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -81,7 +81,7 @@ Respond strictly in valid raw JSON matching this schema. Do not enclose in markd
       if (!geminiResponse.ok) {
         const errText = await geminiResponse.text();
         console.error("Gemini Vision API error:", errText);
-        throw new Error(`Gemini API returned status ${geminiResponse.status}`);
+        throw new Error(`Gemini API returned status ${geminiResponse.status}: ${errText}`);
       }
 
       const resJson = await geminiResponse.json();
@@ -91,7 +91,8 @@ Respond strictly in valid raw JSON matching this schema. Do not enclose in markd
         throw new Error("Empty response from Gemini Vision model");
       }
 
-      const parsedMenu = JSON.parse(contentText);
+      const cleanJson = contentText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsedMenu = JSON.parse(cleanJson);
       return NextResponse.json(parsedMenu);
     } else {
       // Intelligent fallback mode: Return high-fidelity scanned menu mock based on base64 analysis
