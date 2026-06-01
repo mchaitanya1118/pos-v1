@@ -18,11 +18,10 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  Loader2,
   UploadCloud,
-  FileText,
-  Image as ImageIcon
+  Wand2
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 export default function MenuPage() {
   const { activeSettings } = useSessionStore();
@@ -36,6 +35,28 @@ export default function MenuPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
+  // AI Menu Generator States
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiStep, setAiStep] = useState<1 | 2 | 3>(1);
+  const [menuImageBase64, setMenuImageBase64] = useState<string | null>(null);
+  const [menuImageMimeType, setMenuImageMimeType] = useState<string>('image/jpeg');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiScanStatus, setAiScanStatus] = useState<string>('');
+  const [aiScanProgress, setAiScanProgress] = useState(0);
+  const [aiGeneratedMenu, setAiGeneratedMenu] = useState<{
+    categories: {
+      name: string;
+      slug: string;
+      items: {
+        name: string;
+        description: string;
+        price: number;
+        presetImage: string;
+      }[];
+    }[];
+  } | null>(null);
+
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -47,31 +68,6 @@ export default function MenuPage() {
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
-
-  // AI Menu Generator states
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [aiCuisine, setAiCuisine] = useState('italian');
-  const [aiVibe, setAiVibe] = useState('bistro');
-  const [aiCount, setAiCount] = useState(5);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationStep, setGenerationStep] = useState('');
-  const [generatedItems, setGeneratedItems] = useState<{
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    imageUrl: string;
-    categoryId: string;
-    selected: boolean;
-  }[]>([]);
-  const [showReviewScreen, setShowReviewScreen] = useState(false);
-  
-  // OCR Scanner states
-  const [aiTab, setAiTab] = useState<'prompt' | 'scanner'>('prompt');
-  const [scannedFile, setScannedFile] = useState<string | null>(null);
-  const [scannedFileName, setScannedFileName] = useState('');
-  const [scannedFileSize, setScannedFileSize] = useState('');
 
   // Pre-seeded image catalog choices
   const presetImages = [
@@ -209,251 +205,143 @@ export default function MenuPage() {
     }
   };
 
-  const generateAiMenu = async () => {
-    setIsGenerating(true);
-    setGenerationStep('Analyzing cuisine and vibe templates...');
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    setGenerationStep('Simulating deep neural recipe generation...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setGenerationStep('Mapping high-res dish graphics and stock assets...');
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    setGenerationStep('Finalizing pricing optimization vectors...');
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    // Choose items based on cuisine and vibe
-    const baseItems: { name: string; description: string; price: number; imageUrl: string; catName: string }[] = [];
-
-    if (aiCuisine === 'italian') {
-      if (aiVibe === 'fine_dining') {
-        baseItems.push(
-          { name: "Truffle Porcini Risotto", description: "Rich Arborio rice slow-simmered with wild porcini mushrooms, freshly shaved black summer truffles, and 24-month aged Parmigiano-Reggiano.", price: 28.00, imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-          { name: "Lobster Fettuccine Nero", description: "Squid ink pasta tossed with butter-poached Maine lobster, sun-ripened cherry tomatoes, and a light garlic white wine emulsion.", price: 34.00, imageUrl: "https://images.unsplash.com/photo-1559737607-3578909a22fa?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-          { name: "Aged Carpaccio di Manzo", description: "Paper-thin slices of prime beef tenderloin topped with wild baby arugula, capers, mustard aioli, and shaved parmesan.", price: 19.50, imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60", catName: "Starters" }
-        );
-      } else {
-        baseItems.push(
-          { name: "Classic Margherita DOP", description: "Wood-fired crispy artisan crust topped with San Marzano tomatoes, fresh buffalo mozzarella, aromatic sweet basil, and extra virgin olive oil.", price: 14.50, imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-          { name: "Spaghetti Carbonara Romano", description: "Al dente spaghetti tossed with crispy guanciale, rich egg yolks, pecorino romano cheese, and freshly ground coarse black pepper.", price: 17.00, imageUrl: "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-          { name: "Bruschetta Classic Trio", description: "Toasted garlic artisan baguettes topped with heirloom cherry tomatoes, fresh sweet basil, garlic, and sweet balsamic glaze.", price: 8.50, imageUrl: "https://images.unsplash.com/photo-1572656631137-7935297eff55?w=500&auto=format&fit=crop&q=60", catName: "Starters" }
-        );
-      }
-    } else if (aiCuisine === 'indian') {
-      baseItems.push(
-        { name: "Charcoal Smoked Butter Chicken", description: "Tandoor-roasted chicken tikka simmered in a velvet tomato cream gravy finished with active charcoal smoke and real butter.", price: 18.00, imageUrl: "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-        { name: "Delhi Samosa Chaat", description: "Crispy spiced potato pastries crushed and topped with warm spiced yellow peas, sweetened yoghurt, mint, and tangy tamarind chutneys.", price: 9.00, imageUrl: "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=500&auto=format&fit=crop&q=60", catName: "Starters" },
-        { name: "Zafrani Saffron Paneer Tikka", description: "Chunky cottage cheese cubes marinated in real saffron, thick yoghurt, tandoori spices, and char-grilled with bell peppers.", price: 16.50, imageUrl: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=60", catName: "Main Course" }
-      );
-    } else if (aiCuisine === 'mexican') {
-      baseItems.push(
-        { name: "Tacos al Pastor Platter", description: "Thinly sliced marinated pork spit-roasted with sweet pineapple, cilantro, and white onions on warm stone-ground double-corn tortillas.", price: 13.00, imageUrl: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-        { name: "Street Style Cotija Elote", description: "Sweet corn on the cob char-grilled and slathered in lime-infused cotija cheese mayonnaise and dusted with mild tajin powder.", price: 7.00, imageUrl: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=60", catName: "Starters" },
-        { name: "Ancho Chili Glazed Salmon", description: "Fresh salmon fillet pan-seared and glazed with sweet ancho chili honey, served with black bean corn relish and avocado lime purée.", price: 23.50, imageUrl: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&auto=format&fit=crop&q=60", catName: "Main Course" }
-      );
-    } else if (aiCuisine === 'american') {
-      baseItems.push(
-        { name: "Avocado Smashed Prime Burger", description: "USDA Prime beef patty topped with fresh hand-mashed avocado, heirloom tomatoes, sharp Wisconsin cheddar, and chipotle aioli on toasted brioche.", price: 16.00, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-        { name: "Texas Honey BBQ Ribs", description: "Half-rack of baby back pork ribs glazed in our signature sweet honey-bourbon BBQ sauce, served with creamy coleslaw and buttered corn.", price: 24.50, imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-        { name: "Garlic Parmesan Crispy Wings", description: "Double-fried crispy jumbo chicken wings tossed in rich butter, garlic confit, and freshly grated imported parmesan cheese.", price: 11.50, imageUrl: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=60", catName: "Starters" }
-      );
-    } else if (aiCuisine === 'desserts') {
-      baseItems.push(
-        { name: "White Matcha Lava Cake", description: "Warm green tea cake filled with an oozing liquid white chocolate matcha center, served with cold sweet red bean paste and ice cream.", price: 10.50, imageUrl: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop&q=60", catName: "Desserts" },
-        { name: "Classic New York Cheesecake", description: "Dense and creamy traditional cheesecake on a buttery graham cracker crust, topped with fresh glaze strawberries and sweet compote.", price: 8.90, imageUrl: "https://images.unsplash.com/photo-1524351199679-46cddf530c04?w=500&auto=format&fit=crop&q=60", catName: "Desserts" }
-      );
-    } else { // Beverages
-      baseItems.push(
-        { name: "Fresh Mint Mojito Cooler", description: "Refreshing carbonated soda infused with freshly muddled organic mint leaves, fresh lime wedges, and pure sugar cane syrup.", price: 7.00, imageUrl: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&auto=format&fit=crop&q=60", catName: "Beverages" },
-        { name: "Iced Caramel Espresso Macchiato", description: "Freshly brewed dark espresso layered with cold whole milk, vanilla bean syrup, and rich butter caramel drizzle over crushed ice.", price: 5.50, imageUrl: "https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=500&auto=format&fit=crop&q=60", catName: "Beverages" }
-      );
-    }
-
-    // Populate items dynamically by duplicate scaling
-    const generated: typeof generatedItems = [];
-    
-    for (let i = 0; i < aiCount; i++) {
-      const template = baseItems[i % baseItems.length];
-      const basePrice = activeSettings?.currency === 'INR' ? template.price * 80 : template.price;
-      
-      let finalName = template.name;
-      let finalDescription = template.description;
-      
-      if (i >= baseItems.length) {
-        finalName = `${template.name} Double`;
-        finalDescription = `Extra large serving. ${template.description}`;
-      }
-
-      if (aiPrompt.trim()) {
-        finalDescription = `${finalDescription} (Notes: ${aiPrompt})`;
-      }
-
-      let matchedCategory = categories[0]?.id || '';
-      const categoryMatch = categories.find(c => c.name.toLowerCase().includes(template.catName.toLowerCase()));
-      if (categoryMatch) {
-        matchedCategory = categoryMatch.id;
-      }
-
-      generated.push({
-        id: `ai_gen_${Date.now()}_${i}`,
-        name: finalName,
-        description: finalDescription,
-        price: Math.round(basePrice),
-        imageUrl: template.imageUrl,
-        categoryId: matchedCategory,
-        selected: true
-      });
-    }
-
-    setGeneratedItems(generated);
-    setIsGenerating(false);
-    setShowReviewScreen(true);
-  };
-
-  const handlePrintedMenuFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // AI Menu Generator Logic Handlers
+  const handleMenuImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setMenuImageMimeType(file.type);
     const reader = new FileReader();
-    reader.onload = (event) => {
-      setScannedFile(event.target?.result as string);
-      setScannedFileName(file.name);
-      setScannedFileSize(`${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+    reader.onloadend = () => {
+      setMenuImageBase64(reader.result as string);
+      setAiStep(2);
+      startAIScan(reader.result as string, file.type);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
+  const startAIScan = async (base64Image: string, mimeType: string) => {
+    setIsAiLoading(true);
+    setAiError(null);
+    setAiScanProgress(0);
+    setAiScanStatus("Reading menu sheet image...");
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
+    // Progress counter simulation
+    const interval = setInterval(() => {
+      setAiScanProgress(prev => {
+        if (prev >= 95) {
+          clearInterval(interval);
+          return 95;
+        }
+        
+        // Dynamic scan updates
+        if (prev < 30) setAiScanStatus("Analyzing layout and columns...");
+        else if (prev < 65) setAiScanStatus("Detecting menu categories and items...");
+        else setAiScanStatus("Refining price strings and details...");
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setScannedFile(event.target?.result as string);
-      setScannedFileName(file.name);
-      setScannedFileSize(`${(file.size / (1024 * 1024)).toFixed(1)} MB`);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const simulateOcrScan = async () => {
-    if (!scannedFile) {
-      alert("Please upload or select a menu image to scan first!");
-      return;
-    }
-
-    setIsGenerating(true);
-    setGenerationStep('Initializing optical character recognition (OCR) engine...');
-    await new Promise(resolve => setTimeout(resolve, 900));
-
-    setGenerationStep('Binarizing image text layout and isolating grids...');
-    await new Promise(resolve => setTimeout(resolve, 1100));
-
-    setGenerationStep('Extracting titles, descriptions, and parsing currency indices...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    setGenerationStep('Structuring dish catalog lists & category mappings...');
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const ocrTemplates = [
-      { name: "Wood-Fired Garlic Prawns", description: "Jumbo ocean prawns sautéed in white wine garlic butter, flat-leaf parsley, and charred sourdough slices.", price: 21.00, imageUrl: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&auto=format&fit=crop&q=60", catName: "Starters" },
-      { name: "Tuscan Rosemary Ribeye Steak", description: "400g Prime grass-fed ribeye flame-grilled, brushed with rosemary-infused garlic butter, served with truffle chips.", price: 38.00, imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-      { name: "Signature Rigatoni Bolognese", description: "Slow-braised beef & veal ragù with red wine, aromatic soffritto, and freshly grated aged pecorino romano.", price: 19.50, imageUrl: "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
-      { name: "Salted Caramel Tart", description: "Decadent dark chocolate shell filled with fleur de sel caramel ganache, topped with vanilla bean whip.", price: 9.50, imageUrl: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop&q=60", catName: "Desserts" },
-      { name: "Hibiscus Citrus Mocktail", description: "Cold-brewed organic hibiscus herbal tea shaken with sweet orange nectar, fresh key lime juice, and sparkling club soda.", price: 7.50, imageUrl: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&auto=format&fit=crop&q=60", catName: "Beverages" }
-    ];
-
-    const generated: typeof generatedItems = [];
-
-    for (let i = 0; i < ocrTemplates.length; i++) {
-      const template = ocrTemplates[i];
-      const basePrice = activeSettings?.currency === 'INR' ? template.price * 80 : template.price;
-
-      let matchedCategory = categories[0]?.id || '';
-      const categoryMatch = categories.find(c => c.name.toLowerCase().includes(template.catName.toLowerCase()));
-      if (categoryMatch) {
-        matchedCategory = categoryMatch.id;
-      }
-
-      generated.push({
-        id: `ocr_gen_${Date.now()}_${i}`,
-        name: template.name,
-        description: template.description,
-        price: Math.round(basePrice),
-        imageUrl: template.imageUrl,
-        categoryId: matchedCategory,
-        selected: true
+        return prev + 5;
       });
-    }
-
-    setGeneratedItems(generated);
-    setIsGenerating(false);
-    setShowReviewScreen(true);
-  };
-
-  const importGeneratedItems = async () => {
-    const selected = generatedItems.filter(item => item.selected);
-    if (selected.length === 0) {
-      alert("No items selected for import!");
-      return;
-    }
+    }, 150);
 
     try {
-      for (const item of selected) {
-        const newItem: MenuItem = {
-          id: item.id,
-          name: item.name,
-          categoryId: item.categoryId,
-          description: item.description,
-          price: item.price,
-          imageUrl: item.imageUrl,
-          isAvailable: true,
-          createdAt: new Date().toISOString()
-        };
-        await db.saveMenuItem(newItem);
+      const response = await fetch('/api/menu/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64Image, mimeType })
+      });
+
+      clearInterval(interval);
+
+      if (!response.ok) {
+        throw new Error("Failed to parse menu image. Please try again.");
       }
 
-      const mList = await db.getMenuItems();
-      setMenuItems(mList);
+      const data = await response.json();
+      setAiScanProgress(100);
+      setAiScanStatus("Menu parsed successfully!");
+      setAiGeneratedMenu(data);
+      
+      setTimeout(() => {
+        setAiStep(3);
+      }, 500);
 
-      setShowAiModal(false);
-      setShowReviewScreen(false);
-      setGeneratedItems([]);
-      setAiPrompt('');
-      alert(`Successfully imported ${selected.length} items into your POS Menu Catalog!`);
-    } catch (err) {
-      console.error("Failed to import generated menu items", err);
+    } catch (err: any) {
+      clearInterval(interval);
+      console.error(err);
+      setAiError(err.message || "An unexpected error occurred during parsing.");
+      setAiStep(1);
+    } finally {
+      setIsAiLoading(false);
     }
   };
 
-  const updateGeneratedItemName = (index: number, newName: string) => {
-    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, name: newName } : item));
-  };
+  const handleSaveAIGeneratedMenu = async () => {
+    if (!aiGeneratedMenu) return;
 
-  const updateGeneratedItemPrice = (index: number, newPrice: number) => {
-    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, price: newPrice } : item));
-  };
+    try {
+      setIsAiLoading(true);
+      const dbCategories = await db.getCategories();
+      
+      for (const cat of aiGeneratedMenu.categories) {
+        let categoryIdToUse = '';
+        const existingCat = dbCategories.find(c => c.name.toLowerCase() === cat.name.toLowerCase());
+        
+        if (existingCat) {
+          categoryIdToUse = existingCat.id;
+        } else {
+          const newCatId = `cat_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          const newCategory: MenuCategory = {
+            id: newCatId,
+            name: cat.name,
+            slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
+            createdAt: new Date().toISOString()
+          };
+          await db.saveCategory(newCategory);
+          dbCategories.push(newCategory); // Cache in memory list
+          categoryIdToUse = newCatId;
+        }
 
-  const updateGeneratedItemCategory = (index: number, catId: string) => {
-    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, categoryId: catId } : item));
-  };
+        // Save menu items under this category
+        for (const item of cat.items) {
+          const matchedImage = presetImages.find(p => p.name === item.presetImage)?.url || presetImages[0].url;
+          const newItem: MenuItem = {
+            id: `m_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+            name: item.name,
+            categoryId: categoryIdToUse,
+            description: item.description,
+            price: item.price,
+            imageUrl: matchedImage,
+            isAvailable: true,
+            createdAt: new Date().toISOString()
+          };
+          await db.saveMenuItem(newItem);
+        }
+      }
 
-  const updateGeneratedItemDescription = (index: number, desc: string) => {
-    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, description: desc } : item));
-  };
+      // Confetti burst
+      confetti({ particleCount: 180, spread: 90 });
 
-  const toggleGeneratedItemSelection = (index: number) => {
-    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, selected: !item.selected } : item));
-  };
+      // Clean up modal states
+      setShowAIModal(false);
+      setAiStep(1);
+      setMenuImageBase64(null);
+      setAiGeneratedMenu(null);
 
-  const toggleAllGeneratedItemsSelection = (selectAll: boolean) => {
-    setGeneratedItems(prev => prev.map(item => ({ ...item, selected: selectAll })));
+      // Reload menu listing in main table
+      const [mList, cList] = await Promise.all([
+        db.getMenuItems(),
+        db.getCategories()
+      ]);
+      setMenuItems(mList);
+      setCategories(cList);
+
+      alert("AI Menu Catalog successfully generated and imported!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save imported menu items.");
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const currencySymbol = activeSettings?.currency === 'INR' ? '₹' : '$';
@@ -473,18 +361,25 @@ export default function MenuPage() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2.5 self-stretch sm:self-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto self-stretch md:self-auto shrink-0 select-none">
             <button
               type="button"
-              onClick={() => setShowAiModal(true)}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-600/10 active-press transition-all justify-center cursor-pointer"
+              onClick={() => {
+                setAiStep(1);
+                setAiError(null);
+                setMenuImageBase64(null);
+                setAiGeneratedMenu(null);
+                setShowAIModal(true);
+              }}
+              className="px-5 py-3 rounded-2xl bg-[#0b4f48] hover:bg-[#083d37] text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-[#0b4f48]/15 active-press transition-all w-full sm:w-auto justify-center cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-purple-200 animate-pulse" /> AI Menu Generator
+              <Sparkles className="w-4 h-4 text-emerald-350 animate-pulse" /> AI Menu Generator
             </button>
+
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-600/20 active-press transition-all justify-center cursor-pointer"
+              className="px-5 py-3 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-500 font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-600/20 active-press transition-all w-full sm:w-auto justify-center cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add Menu Item
             </button>
@@ -861,426 +756,275 @@ export default function MenuPage() {
           </div>
         )}
 
-        {/* AI MENU GENERATOR MODAL */}
-        {showAiModal && (
-          <div className="fixed inset-0 z-50 bg-[#090d16]/70 backdrop-blur-sm flex items-center justify-center px-4 overflow-y-auto py-8 select-none">
-            <div className="glass-panel w-full max-w-4xl rounded-3xl p-6 relative animate-scale-in max-h-[90vh] flex flex-col">
+        {/* AI MENU GENERATOR WIZARD MODAL */}
+        {showAIModal && (
+          <div className="fixed inset-0 z-50 bg-[#090d16]/75 backdrop-blur-md flex items-center justify-center px-4 py-6 overflow-y-auto select-none">
+            <div className="glass-panel w-full max-w-3xl rounded-[32px] overflow-hidden flex flex-col relative animate-scale-in max-h-[90vh] shadow-2xl border border-slate-100 dark:border-slate-800/80">
               
-              {/* Close Button */}
-              {!isGenerating && (
+              {/* Header */}
+              <div className="p-6 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-white/20 dark:bg-[#0b1120]/45">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-teal-400 animate-pulse" />
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-800 dark:text-white leading-tight">AI Menu Generator</h3>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
+                      {aiStep === 1 ? 'Step 1: Upload Menu Image' : aiStep === 2 ? 'Step 2: Scanning & Processing' : 'Step 3: Review & Edit Items'}
+                    </span>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowAiModal(false);
-                    setShowReviewScreen(false);
-                    setGeneratedItems([]);
-                  }}
-                  className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition-colors"
+                  onClick={() => setShowAIModal(false)}
+                  disabled={isAiLoading}
+                  className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
                 >
                   <X className="w-5 h-5" />
                 </button>
-              )}
+              </div>
 
-              {/* STEP 1: FORM WIZARD */}
-              {!isGenerating && !showReviewScreen && (
-                <div className="flex-1 flex flex-col overflow-y-auto">
-                  <h3 className="font-extrabold text-lg text-slate-900 dark:text-white mb-1 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" /> AI Menu Generator
-                  </h3>
-                  <p className="text-xs text-slate-400 mb-6">
-                    Craft gourmet dishes automatically powered by advanced neural recipe profiles or OCR scanners.
-                  </p>
-
-                  {/* Mode Tab Bar */}
-                  <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6 select-none shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setAiTab('prompt')}
-                      className={`px-6 py-3 text-xs font-bold transition-all relative flex items-center gap-2 cursor-pointer ${
-                        aiTab === 'prompt'
-                          ? 'text-indigo-550 border-b-2 border-indigo-500 font-black'
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      <Sparkles className="w-3.5 h-3.5" /> AI Prompt Synthesizer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAiTab('scanner')}
-                      className={`px-6 py-3 text-xs font-bold transition-all relative flex items-center gap-2 cursor-pointer ${
-                        aiTab === 'scanner'
-                          ? 'text-indigo-550 border-b-2 border-indigo-500 font-black'
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" /> Printed Menu OCR Scanner
-                    </button>
-                  </div>
-
-                  {aiTab === 'scanner' ? (
-                    <div className="space-y-5 flex-1 pr-1">
-                      {/* Drag & Drop zone */}
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Upload Printed Menu Photo</label>
-                        <input
-                          type="file"
-                          id="printedMenuFileInput"
-                          accept="image/*"
-                          onChange={handlePrintedMenuFileSelect}
-                          className="hidden"
-                        />
-                        {!scannedFile ? (
-                          <div
-                            onClick={() => document.getElementById('printedMenuFileInput')?.click()}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
-                            className="border-dashed border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-slate-200/5 dark:hover:bg-slate-800/10 transition-all select-none"
-                          >
-                            <UploadCloud className="w-12 h-12 text-slate-400 mb-3 animate-bounce" />
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 text-center">
-                              Drag & drop your physical menu photo here, or <span className="text-indigo-400 hover:underline">browse files</span>
-                            </p>
-                            <p className="text-[9px] text-slate-500 mt-1">Supports JPG, PNG, WEBP (Max 5MB)</p>
-                          </div>
-                        ) : (
-                          <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/20 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center shrink-0 border border-slate-700">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={scannedFile} alt="Scanned file preview" className="object-cover w-full h-full opacity-80" />
-                              </div>
-                              <div>
-                                <h4 className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-                                  <ImageIcon className="w-3.5 h-3.5 text-indigo-400" /> {scannedFileName}
-                                </h4>
-                                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{scannedFileSize} • Image Loaded Successfully</p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setScannedFile(null);
-                                setScannedFileName('');
-                                setScannedFileSize('');
-                              }}
-                              className="px-3 py-1.5 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold transition-all"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Fast OCR Presets */}
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Or Choose a Sample Menu Image Preset</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                          {[
-                            { name: "Bistro Cafe Printed Menu", size: "1.4 MB", preview: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60" },
-                            { name: "Spice Fusion Tavern Menu", size: "2.1 MB", preview: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=60" }
-                          ].map((p, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              onClick={() => {
-                                setScannedFile(p.preview);
-                                setScannedFileName(p.name + ".png");
-                                setScannedFileSize(p.size);
-                              }}
-                              className={`p-3 rounded-2xl border text-left transition-all active-press flex items-center gap-3 cursor-pointer ${
-                                scannedFileName.startsWith(p.name)
-                                  ? 'border-indigo-500 bg-indigo-500/10 text-white font-bold'
-                                  : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-255 hover:border-slate-700'
-                              }`}
-                            >
-                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center shrink-0">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={p.preview} alt="Preset thumbnail" className="object-cover w-full h-full opacity-70" />
-                              </div>
-                              <div>
-                                <h5 className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{p.name}</h5>
-                                <p className="text-[9px] text-slate-400 font-semibold">{p.size} • Template Image</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-5 flex-1 pr-1">
-                      {/* Cuisine Type Grid Selection */}
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Cuisine Type</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                          {[
-                            { id: 'italian', label: 'Italian', icon: '🇮🇹' },
-                            { id: 'indian', label: 'Indian', icon: '🇮🇳' },
-                            { id: 'mexican', label: 'Mexican', icon: '🇲🇽' },
-                            { id: 'american', label: 'American', icon: '🇺🇸' },
-                            { id: 'desserts', label: 'Desserts', icon: '🍰' },
-                            { id: 'beverages', label: 'Beverages', icon: '🍹' },
-                          ].map((cuisine) => (
-                            <button
-                              key={cuisine.id}
-                              type="button"
-                              onClick={() => setAiCuisine(cuisine.id)}
-                              className={`p-3 rounded-2xl border text-left transition-all active-press flex items-center gap-2 cursor-pointer ${
-                                aiCuisine === cuisine.id
-                                  ? 'border-indigo-500 bg-indigo-500/10 text-white font-bold'
-                                  : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-250 hover:border-slate-700'
-                              }`}
-                            >
-                              <span className="text-xl">{cuisine.icon}</span>
-                              <span className="text-xs">{cuisine.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Vibe / Style pills */}
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Establishment Vibe & Style</label>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            { id: 'bistro', label: 'Casual Bistro' },
-                            { id: 'fine_dining', label: 'Fine Dining' },
-                            { id: 'fast_food', label: 'Fast Food / Express' },
-                            { id: 'cafe', label: 'Cozy Café' },
-                          ].map((vibe) => (
-                            <button
-                              key={vibe.id}
-                              type="button"
-                              onClick={() => setAiVibe(vibe.id)}
-                              className={`px-4 py-2.5 rounded-full text-xs font-semibold border transition-all active-press cursor-pointer ${
-                                aiVibe === vibe.id
-                                  ? 'border-purple-500 bg-purple-500/10 text-white font-bold'
-                                  : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-200'
-                              }`}
-                            >
-                              {vibe.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Dish Count Stepper/Slider */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Number of Dishes to Synthesize</label>
-                          <span className="text-xs font-black text-indigo-400">{aiCount} Dishes</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={aiCount}
-                          onChange={(e) => setAiCount(parseInt(e.target.value))}
-                          className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
-                        />
-                        <div className="flex justify-between text-[9px] text-slate-500 font-bold px-1 mt-1">
-                          <span>1 Dish</span>
-                          <span>5 Dishes</span>
-                          <span>10 Dishes</span>
-                        </div>
-                      </div>
-
-                      {/* Custom Prompt Constraints */}
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Custom Style Prompt (Optional)</label>
-                        <textarea
-                          placeholder="e.g. Include vegetarian recipes, make them extra spicy, style with gold leaf accents..."
-                          rows={3}
-                          value={aiPrompt}
-                          onChange={(e) => setAiPrompt(e.target.value)}
-                          className="w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl px-4 py-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-slate-800 dark:text-white placeholder:text-slate-500"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Wizard Footer Action */}
-                  <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setShowAiModal(false)}
-                      className="w-1/3 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-800 dark:text-white"
-                    >
-                      Close Wizard
-                    </button>
-                    {aiTab === 'scanner' ? (
-                      <button
-                        type="button"
-                        onClick={simulateOcrScan}
-                        className="flex-1 py-3 rounded-2xl text-xs font-black bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active-press transition-all cursor-pointer"
-                      >
-                        <FileText className="w-4 h-4 text-indigo-250 animate-pulse" /> Analyze & Parse Menu via OCR
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={generateAiMenu}
-                        className="flex-1 py-3 rounded-2xl text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active-press transition-all cursor-pointer"
-                      >
-                        <Sparkles className="w-4 h-4 text-purple-200" /> Synthesize Dishes via AI
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 2: ANIMATED LOADER */}
-              {isGenerating && (
-                <div className="flex-1 flex flex-col items-center justify-center py-16 text-center select-none animate-pulse">
-                  <div className="relative mb-6">
-                    <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl animate-ping scale-75"></div>
-                    <Loader2 className="w-12 h-12 text-indigo-500 animate-spin relative" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white mb-2">Generating Gourmet Recipe Matrix...</h4>
-                  <div className="px-6 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 max-w-sm">
-                    <span className="text-[10px] uppercase tracking-widest font-black text-indigo-400 animate-pulse">
-                      {generationStep}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 mt-4 font-semibold">Running deep pricing optimization and asset mapping...</p>
-                </div>
-              )}
-
-              {/* STEP 3: HIGH-FIDELITY REVIEW & EDIT SCREEN */}
-              {!isGenerating && showReviewScreen && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 shrink-0 pb-4 border-b border-slate-200 dark:border-slate-800">
+              {/* Scrollable Modal Content */}
+              <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-[#060913]/30">
+                {aiError && (
+                  <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl flex items-start gap-2.5 text-xs font-semibold select-text">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                        <Check className="w-5 h-5 text-emerald-500 bg-emerald-500/10 rounded-full p-0.5" /> Review Synthesized Dishes
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Customize prices, names, and descriptions, and choose which dishes to import.
-                      </p>
-                    </div>
-
-                    {/* Mass Selection Toggle button */}
-                    <div className="flex items-center gap-2 self-start sm:self-auto select-none">
-                      <button
-                        type="button"
-                        onClick={() => toggleAllGeneratedItemsSelection(true)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[10px] font-bold text-slate-650 dark:text-slate-350 transition-colors"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleAllGeneratedItemsSelection(false)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[10px] font-bold text-slate-650 dark:text-slate-350 transition-colors"
-                      >
-                        Deselect All
-                      </button>
+                      <p className="font-bold">Extraction Failed</p>
+                      <p className="opacity-90 mt-0.5">{aiError}</p>
                     </div>
                   </div>
+                )}
 
-                  {/* Scrollable Generated Items Editor */}
-                  <div className="flex-1 overflow-y-auto pr-1 space-y-4 max-h-[50vh]">
-                    {generatedItems.map((item, idx) => (
-                      <div
-                        key={item.id}
-                        className={`p-4 rounded-2xl border transition-all flex flex-col md:flex-row items-start md:items-center gap-4 relative ${
-                          item.selected
-                            ? 'border-indigo-500/50 bg-indigo-500/5'
-                            : 'border-slate-200 dark:border-slate-800/80 bg-slate-950/20 opacity-60'
-                        }`}
-                      >
-                        {/* Checkbox selector */}
-                        <div className="absolute top-4 right-4 md:static flex items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={item.selected}
-                            onChange={() => toggleGeneratedItemSelection(idx)}
-                            className="rounded border-slate-350 bg-slate-800 text-indigo-500 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
-                          />
+                {/* STEP 1: UPLOAD FILE TARGET */}
+                {aiStep === 1 && (
+                  <div className="py-8 flex flex-col items-center justify-center">
+                    <label className="w-full max-w-md border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-teal-500/50 dark:hover:border-teal-400/40 rounded-3xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-white dark:bg-[#0b1120] hover:shadow-[0_0_24px_rgba(20,184,166,0.02)] active:scale-[0.99] select-none group">
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={handleMenuImageUpload}
+                        className="hidden"
+                      />
+                      <div className="w-16 h-16 rounded-2xl bg-teal-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-250 select-none">
+                        <UploadCloud className="w-8 h-8 text-teal-500 dark:text-teal-400" />
+                      </div>
+                      <h4 className="font-black text-slate-800 dark:text-white text-sm">Select Restaurant Menu Image</h4>
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed max-w-[280px]">
+                        Drop your printed menu photo, brochure, or sheet here. Supports PNG, JPG (Max 5MB).
+                      </p>
+                    </label>
+                  </div>
+                )}
+
+                {/* STEP 2: SCANNERS & PROGRESS TIMELINE */}
+                {aiStep === 2 && menuImageBase64 && (
+                  <div className="flex flex-col items-center justify-center py-6 select-none">
+                    <div className="w-full max-w-sm rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 relative bg-white dark:bg-[#0b1120] shadow-xl">
+                      {/* Scaled Preview */}
+                      <img src={menuImageBase64} alt="Menu Preview" className="w-full h-64 object-cover filter brightness-[0.75]" />
+                      
+                      {/* Laser scanning moving bar */}
+                      <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-teal-400 to-transparent shadow-[0_0_12px_#2dd4bf] animate-bounce z-10" style={{ top: '10%', animationDuration: '3s' }}></div>
+
+                      {/* Mock scanning bounding boxes */}
+                      {aiScanProgress > 15 && aiScanProgress < 75 && (
+                        <div className="absolute top-[25%] left-[10%] px-2 py-1 bg-teal-500/20 text-teal-400 text-[8px] font-black border border-teal-500/40 rounded uppercase tracking-wider animate-pulse z-15">
+                          [STARTERS DETECTED]
                         </div>
-
-                        {/* Round Cover Preview */}
-                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
+                      )}
+                      {aiScanProgress > 35 && aiScanProgress < 85 && (
+                        <div className="absolute top-[50%] right-[15%] px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[8px] font-black border border-emerald-500/40 rounded uppercase tracking-wider animate-pulse z-15">
+                          [EXTRACTING PRICES]
                         </div>
+                      )}
+                      {aiScanProgress > 55 && (
+                        <div className="absolute bottom-[20%] left-[20%] px-2 py-1 bg-indigo-500/20 text-indigo-400 text-[8px] font-black border border-indigo-500/40 rounded uppercase tracking-wider animate-pulse z-15">
+                          [MAPPING RELATIONSHIPS]
+                        </div>
+                      )}
+                    </div>
 
-                        {/* Editor Inputs Grid */}
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
-                          {/* Dish Name */}
-                          <div className="md:col-span-2">
-                            <label className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider block mb-1">Dish Name</label>
-                            <input
-                              type="text"
-                              value={item.name}
-                              onChange={(e) => updateGeneratedItemName(idx, e.target.value)}
-                              className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none"
-                            />
-                          </div>
+                    {/* Progress Bar container */}
+                    <div className="w-full max-w-md mt-8 space-y-3">
+                      <div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1.5">
+                          <Wand2 className="w-3.5 h-3.5 text-teal-400 animate-spin" /> {aiScanStatus}
+                        </span>
+                        <span>{aiScanProgress}%</span>
+                      </div>
+                      
+                      <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
+                        <div 
+                          className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-300 shadow-md shadow-teal-500/10"
+                          style={{ width: `${aiScanProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                          {/* Category and Price */}
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider block mb-1">Category</label>
-                              <select
-                                value={item.categoryId}
-                                onChange={(e) => updateGeneratedItemCategory(idx, e.target.value)}
-                                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-400 dark:text-slate-200 focus:outline-none"
-                              >
-                                {categories.map(c => (
-                                  <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                              </select>
-                            </div>
+                {/* STEP 3: EXTREMELY HIGH FIDELITY EDITING & VALIDATION GRID */}
+                {aiStep === 3 && aiGeneratedMenu && (
+                  <div className="space-y-6">
+                    <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-850 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800/80">
+                      ✨ **AI menu scan completed!** Check categories and dishes below. You can correct descriptions, tweak estimated prices, or delete items before adding them to the database.
+                    </p>
 
-                            <div>
-                              <label className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider block mb-1">Price ({currencySymbol})</label>
+                    <div className="space-y-8 select-text">
+                      {aiGeneratedMenu.categories.map((cat, catIdx) => (
+                        <div key={catIdx} className="bg-white dark:bg-[#0b1120] border border-slate-150/70 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                          {/* Category Header */}
+                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                            <div className="space-y-1">
+                              <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">POS Menu Category</span>
                               <input
-                                type="number"
-                                min="0"
-                                value={item.price}
-                                onChange={(e) => updateGeneratedItemPrice(idx, parseFloat(e.target.value) || 0)}
-                                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs font-black text-slate-800 dark:text-white focus:outline-none text-right"
+                                type="text"
+                                required
+                                value={cat.name}
+                                onChange={(e) => {
+                                  const updated = { ...aiGeneratedMenu };
+                                  updated.categories[catIdx].name = e.target.value;
+                                  updated.categories[catIdx].slug = e.target.value.toLowerCase().replace(/\s+/g, '-');
+                                  setAiGeneratedMenu(updated);
+                                }}
+                                className="text-sm font-black text-slate-800 dark:text-white bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-indigo-500 focus:outline-none transition-colors"
                               />
                             </div>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = { ...aiGeneratedMenu };
+                                updated.categories.splice(catIdx, 1);
+                                setAiGeneratedMenu(updated);
+                              }}
+                              className="text-[10px] font-black text-red-500 hover:text-red-600 hover:bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/10"
+                            >
+                              Delete Category
+                            </button>
                           </div>
 
-                          {/* Description */}
-                          <div className="md:col-span-3">
-                            <label className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider block mb-1">Description</label>
-                            <textarea
-                              rows={1}
-                              value={item.description}
-                              onChange={(e) => updateGeneratedItemDescription(idx, e.target.value)}
-                              className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-500 dark:text-slate-350 focus:outline-none"
-                            />
+                          {/* Category Items List */}
+                          <div className="divide-y divide-slate-100 dark:divide-slate-800/60 space-y-4">
+                            {cat.items.map((item, itemIdx) => (
+                              <div key={itemIdx} className="pt-4 first:pt-0 flex flex-col md:flex-row gap-4 items-start justify-between">
+                                <div className="flex-1 space-y-3 w-full">
+                                  {/* Row 1: Name and Price */}
+                                  <div className="grid grid-cols-4 gap-3">
+                                    <div className="col-span-3">
+                                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Dish Name</label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={item.name}
+                                        onChange={(e) => {
+                                          const updated = { ...aiGeneratedMenu };
+                                          updated.categories[catIdx].items[itemIdx].name = e.target.value;
+                                          setAiGeneratedMenu(updated);
+                                        }}
+                                        className="w-full bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Price ({currencySymbol})</label>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        required
+                                        value={item.price}
+                                        onChange={(e) => {
+                                          const updated = { ...aiGeneratedMenu };
+                                          updated.categories[catIdx].items[itemIdx].price = parseFloat(e.target.value) || 0;
+                                          setAiGeneratedMenu(updated);
+                                        }}
+                                        className="w-full bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800/80 rounded-xl px-3 py-2 text-xs font-black focus:outline-none text-right"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Row 2: Description and Preset image */}
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div className="md:col-span-2">
+                                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Ingredients / Description</label>
+                                      <input
+                                        type="text"
+                                        value={item.description}
+                                        onChange={(e) => {
+                                          const updated = { ...aiGeneratedMenu };
+                                          updated.categories[catIdx].items[itemIdx].description = e.target.value;
+                                          setAiGeneratedMenu(updated);
+                                        }}
+                                        className="w-full bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800/80 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Graphic Preset</label>
+                                      <select
+                                        value={item.presetImage}
+                                        onChange={(e) => {
+                                          const updated = { ...aiGeneratedMenu };
+                                          updated.categories[catIdx].items[itemIdx].presetImage = e.target.value;
+                                          setAiGeneratedMenu(updated);
+                                        }}
+                                        className="w-full bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800/80 rounded-xl px-2.5 py-2 text-xs font-semibold focus:outline-none"
+                                      >
+                                        {presetImages.map((p, pIdx) => (
+                                          <option key={pIdx} value={p.name}>{p.name}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = { ...aiGeneratedMenu };
+                                    updated.categories[catIdx].items.splice(itemIdx, 1);
+                                    setAiGeneratedMenu(updated);
+                                  }}
+                                  className="p-2.5 rounded-xl border border-rose-500/10 hover:border-rose-500/30 text-rose-500 hover:bg-rose-500/10 shrink-0 md:mt-5 transition-all duration-150 active-press self-end md:self-auto"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
+                )}
+              </div>
 
-                  {/* Actions Footer */}
-                  <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowReviewScreen(false);
-                        setGeneratedItems([]);
-                      }}
-                      className="w-1/3 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-800 dark:text-white"
-                    >
-                      Back to Prompt
-                    </button>
-                    <button
-                      type="button"
-                      onClick={importGeneratedItems}
-                      className="flex-1 py-3 rounded-2xl text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active-press transition-all cursor-pointer"
-                    >
-                      <Check className="w-4 h-4" /> Import {generatedItems.filter(i => i.selected).length} Selected Dishes
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Footer */}
+              <div className="p-6 border-t border-slate-150 dark:border-slate-800 flex gap-2.5 bg-white/20 dark:bg-[#0b1120]/45">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAIModal(false);
+                    setAiStep(1);
+                    setMenuImageBase64(null);
+                    setAiGeneratedMenu(null);
+                  }}
+                  disabled={isAiLoading}
+                  className="w-1/3 py-3 rounded-2xl text-xs font-black bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-350 disabled:opacity-50 disabled:cursor-not-allowed text-center transition-colors active-press"
+                >
+                  Cancel
+                </button>
+
+                {aiStep === 3 && aiGeneratedMenu && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAIGeneratedMenu}
+                    disabled={isAiLoading || aiGeneratedMenu.categories.length === 0}
+                    className="flex-1 py-3 rounded-2xl text-xs font-black bg-teal-600 hover:bg-teal-500 text-white disabled:opacity-50 disabled:cursor-not-allowed text-center shadow-md shadow-teal-600/15 transition-all active-press"
+                  >
+                    {isAiLoading ? 'Importing Menu Items...' : 'Confirm & Add to POS Catalog'}
+                  </button>
+                )}
+              </div>
 
             </div>
           </div>

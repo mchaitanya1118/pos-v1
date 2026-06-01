@@ -34,9 +34,9 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
   // Starters
   {
     id: "m1",
-    name: "Golden fried vegetable rolls",
+    name: "Crispy Spring Rolls",
     categoryId: "cat1",
-    description: "Served with sweet chili dip.",
+    description: "Golden fried vegetable rolls served with sweet chili dip.",
     price: 7.99,
     imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60",
     isAvailable: true,
@@ -44,9 +44,9 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "m2",
-    name: "Crispy chicken wings",
+    name: "Garlic Parmesan Wings",
     categoryId: "cat1",
-    description: "Tossed in rich butter, garlic, and fresh herbs.",
+    description: "Crispy chicken wings tossed in rich butter, garlic, and fresh parmesan.",
     price: 11.49,
     imageUrl: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=60",
     isAvailable: true,
