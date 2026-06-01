@@ -311,6 +311,37 @@ export default function MenuPage() {
     setShowReviewScreen(true);
   };
 
+  const handlePrintedMenuFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setScannedFile(event.target?.result as string);
+      setScannedFileName(file.name);
+      setScannedFileSize(`${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setScannedFile(event.target?.result as string);
+      setScannedFileName(file.name);
+      setScannedFileSize(`${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const simulateOcrScan = async () => {
     if (!scannedFile) {
       alert("Please upload or select a menu image to scan first!");
@@ -891,14 +922,18 @@ export default function MenuPage() {
                       {/* Drag & Drop zone */}
                       <div>
                         <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Upload Printed Menu Photo</label>
+                        <input
+                          type="file"
+                          id="printedMenuFileInput"
+                          accept="image/*"
+                          onChange={handlePrintedMenuFileSelect}
+                          className="hidden"
+                        />
                         {!scannedFile ? (
                           <div
-                            onClick={() => {
-                              // Simulate selecting a file
-                              setScannedFile('https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?w=800&auto=format&fit=crop&q=60');
-                              setScannedFileName('printed_menu_hq.jpg');
-                              setScannedFileSize('1.8 MB');
-                            }}
+                            onClick={() => document.getElementById('printedMenuFileInput')?.click()}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
                             className="border-dashed border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-slate-200/5 dark:hover:bg-slate-800/10 transition-all select-none"
                           >
                             <UploadCloud className="w-12 h-12 text-slate-400 mb-3 animate-bounce" />
