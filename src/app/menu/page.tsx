@@ -18,7 +18,10 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  Loader2
+  Loader2,
+  UploadCloud,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export default function MenuPage() {
@@ -63,6 +66,12 @@ export default function MenuPage() {
     selected: boolean;
   }[]>([]);
   const [showReviewScreen, setShowReviewScreen] = useState(false);
+  
+  // OCR Scanner states
+  const [aiTab, setAiTab] = useState<'prompt' | 'scanner'>('prompt');
+  const [scannedFile, setScannedFile] = useState<string | null>(null);
+  const [scannedFileName, setScannedFileName] = useState('');
+  const [scannedFileSize, setScannedFileSize] = useState('');
 
   // Pre-seeded image catalog choices
   const presetImages = [
@@ -290,6 +299,61 @@ export default function MenuPage() {
         id: `ai_gen_${Date.now()}_${i}`,
         name: finalName,
         description: finalDescription,
+        price: Math.round(basePrice),
+        imageUrl: template.imageUrl,
+        categoryId: matchedCategory,
+        selected: true
+      });
+    }
+
+    setGeneratedItems(generated);
+    setIsGenerating(false);
+    setShowReviewScreen(true);
+  };
+
+  const simulateOcrScan = async () => {
+    if (!scannedFile) {
+      alert("Please upload or select a menu image to scan first!");
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationStep('Initializing optical character recognition (OCR) engine...');
+    await new Promise(resolve => setTimeout(resolve, 900));
+
+    setGenerationStep('Binarizing image text layout and isolating grids...');
+    await new Promise(resolve => setTimeout(resolve, 1100));
+
+    setGenerationStep('Extracting titles, descriptions, and parsing currency indices...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    setGenerationStep('Structuring dish catalog lists & category mappings...');
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    const ocrTemplates = [
+      { name: "Wood-Fired Garlic Prawns", description: "Jumbo ocean prawns sautéed in white wine garlic butter, flat-leaf parsley, and charred sourdough slices.", price: 21.00, imageUrl: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&auto=format&fit=crop&q=60", catName: "Starters" },
+      { name: "Tuscan Rosemary Ribeye Steak", description: "400g Prime grass-fed ribeye flame-grilled, brushed with rosemary-infused garlic butter, served with truffle chips.", price: 38.00, imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+      { name: "Signature Rigatoni Bolognese", description: "Slow-braised beef & veal ragù with red wine, aromatic soffritto, and freshly grated aged pecorino romano.", price: 19.50, imageUrl: "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+      { name: "Salted Caramel Tart", description: "Decadent dark chocolate shell filled with fleur de sel caramel ganache, topped with vanilla bean whip.", price: 9.50, imageUrl: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop&q=60", catName: "Desserts" },
+      { name: "Hibiscus Citrus Mocktail", description: "Cold-brewed organic hibiscus herbal tea shaken with sweet orange nectar, fresh key lime juice, and sparkling club soda.", price: 7.50, imageUrl: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&auto=format&fit=crop&q=60", catName: "Beverages" }
+    ];
+
+    const generated: typeof generatedItems = [];
+
+    for (let i = 0; i < ocrTemplates.length; i++) {
+      const template = ocrTemplates[i];
+      const basePrice = activeSettings?.currency === 'INR' ? template.price * 80 : template.price;
+
+      let matchedCategory = categories[0]?.id || '';
+      const categoryMatch = categories.find(c => c.name.toLowerCase().includes(template.catName.toLowerCase()));
+      if (categoryMatch) {
+        matchedCategory = categoryMatch.id;
+      }
+
+      generated.push({
+        id: `ocr_gen_${Date.now()}_${i}`,
+        name: template.name,
+        description: template.description,
         price: Math.round(basePrice),
         imageUrl: template.imageUrl,
         categoryId: matchedCategory,
@@ -793,98 +857,211 @@ export default function MenuPage() {
                     <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" /> AI Menu Generator
                   </h3>
                   <p className="text-xs text-slate-400 mb-6">
-                    Craft gourmet dishes automatically powered by advanced neural recipe profiles.
+                    Craft gourmet dishes automatically powered by advanced neural recipe profiles or OCR scanners.
                   </p>
 
-                  <div className="space-y-5 flex-1 pr-1">
-                    {/* Cuisine Type Grid Selection */}
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Cuisine Type</label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                        {[
-                          { id: 'italian', label: 'Italian', icon: '🇮🇹' },
-                          { id: 'indian', label: 'Indian', icon: '🇮🇳' },
-                          { id: 'mexican', label: 'Mexican', icon: '🇲🇽' },
-                          { id: 'american', label: 'American', icon: '🇺🇸' },
-                          { id: 'desserts', label: 'Desserts', icon: '🍰' },
-                          { id: 'beverages', label: 'Beverages', icon: '🍹' },
-                        ].map((cuisine) => (
-                          <button
-                            key={cuisine.id}
-                            type="button"
-                            onClick={() => setAiCuisine(cuisine.id)}
-                            className={`p-3 rounded-2xl border text-left transition-all active-press flex items-center gap-2 cursor-pointer ${
-                              aiCuisine === cuisine.id
-                                ? 'border-indigo-500 bg-indigo-500/10 text-white font-bold'
-                                : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-250 hover:border-slate-700'
-                            }`}
-                          >
-                            <span className="text-xl">{cuisine.icon}</span>
-                            <span className="text-xs">{cuisine.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Vibe / Style pills */}
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Establishment Vibe & Style</label>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { id: 'bistro', label: 'Casual Bistro' },
-                          { id: 'fine_dining', label: 'Fine Dining' },
-                          { id: 'fast_food', label: 'Fast Food / Express' },
-                          { id: 'cafe', label: 'Cozy Café' },
-                        ].map((vibe) => (
-                          <button
-                            key={vibe.id}
-                            type="button"
-                            onClick={() => setAiVibe(vibe.id)}
-                            className={`px-4 py-2.5 rounded-full text-xs font-semibold border transition-all active-press cursor-pointer ${
-                              aiVibe === vibe.id
-                                ? 'border-purple-500 bg-purple-500/10 text-white font-bold'
-                                : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-200'
-                            }`}
-                          >
-                            {vibe.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Dish Count Stepper/Slider */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Number of Dishes to Synthesize</label>
-                        <span className="text-xs font-black text-indigo-400">{aiCount} Dishes</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        value={aiCount}
-                        onChange={(e) => setAiCount(parseInt(e.target.value))}
-                        className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
-                      />
-                      <div className="flex justify-between text-[9px] text-slate-500 font-bold px-1 mt-1">
-                        <span>1 Dish</span>
-                        <span>5 Dishes</span>
-                        <span>10 Dishes</span>
-                      </div>
-                    </div>
-
-                    {/* Custom Prompt Constraints */}
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Custom Style Prompt (Optional)</label>
-                      <textarea
-                        placeholder="e.g. Include vegetarian recipes, make them extra spicy, style with gold leaf accents..."
-                        rows={3}
-                        value={aiPrompt}
-                        onChange={(e) => setAiPrompt(e.target.value)}
-                        className="w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl px-4 py-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-slate-800 dark:text-white placeholder:text-slate-500"
-                      />
-                    </div>
+                  {/* Mode Tab Bar */}
+                  <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6 select-none shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setAiTab('prompt')}
+                      className={`px-6 py-3 text-xs font-bold transition-all relative flex items-center gap-2 cursor-pointer ${
+                        aiTab === 'prompt'
+                          ? 'text-indigo-550 border-b-2 border-indigo-500 font-black'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> AI Prompt Synthesizer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiTab('scanner')}
+                      className={`px-6 py-3 text-xs font-bold transition-all relative flex items-center gap-2 cursor-pointer ${
+                        aiTab === 'scanner'
+                          ? 'text-indigo-550 border-b-2 border-indigo-500 font-black'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> Printed Menu OCR Scanner
+                    </button>
                   </div>
+
+                  {aiTab === 'scanner' ? (
+                    <div className="space-y-5 flex-1 pr-1">
+                      {/* Drag & Drop zone */}
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Upload Printed Menu Photo</label>
+                        {!scannedFile ? (
+                          <div
+                            onClick={() => {
+                              // Simulate selecting a file
+                              setScannedFile('https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?w=800&auto=format&fit=crop&q=60');
+                              setScannedFileName('printed_menu_hq.jpg');
+                              setScannedFileSize('1.8 MB');
+                            }}
+                            className="border-dashed border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-slate-200/5 dark:hover:bg-slate-800/10 transition-all select-none"
+                          >
+                            <UploadCloud className="w-12 h-12 text-slate-400 mb-3 animate-bounce" />
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 text-center">
+                              Drag & drop your physical menu photo here, or <span className="text-indigo-400 hover:underline">browse files</span>
+                            </p>
+                            <p className="text-[9px] text-slate-500 mt-1">Supports JPG, PNG, WEBP (Max 5MB)</p>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/20 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center shrink-0 border border-slate-700">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={scannedFile} alt="Scanned file preview" className="object-cover w-full h-full opacity-80" />
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                                  <ImageIcon className="w-3.5 h-3.5 text-indigo-400" /> {scannedFileName}
+                                </h4>
+                                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{scannedFileSize} • Image Loaded Successfully</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setScannedFile(null);
+                                setScannedFileName('');
+                                setScannedFileSize('');
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold transition-all"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Fast OCR Presets */}
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Or Choose a Sample Menu Image Preset</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {[
+                            { name: "Bistro Cafe Printed Menu", size: "1.4 MB", preview: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60" },
+                            { name: "Spice Fusion Tavern Menu", size: "2.1 MB", preview: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=60" }
+                          ].map((p, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setScannedFile(p.preview);
+                                setScannedFileName(p.name + ".png");
+                                setScannedFileSize(p.size);
+                              }}
+                              className={`p-3 rounded-2xl border text-left transition-all active-press flex items-center gap-3 cursor-pointer ${
+                                scannedFileName.startsWith(p.name)
+                                  ? 'border-indigo-500 bg-indigo-500/10 text-white font-bold'
+                                  : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-255 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={p.preview} alt="Preset thumbnail" className="object-cover w-full h-full opacity-70" />
+                              </div>
+                              <div>
+                                <h5 className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{p.name}</h5>
+                                <p className="text-[9px] text-slate-400 font-semibold">{p.size} • Template Image</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-5 flex-1 pr-1">
+                      {/* Cuisine Type Grid Selection */}
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Cuisine Type</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                          {[
+                            { id: 'italian', label: 'Italian', icon: '🇮🇹' },
+                            { id: 'indian', label: 'Indian', icon: '🇮🇳' },
+                            { id: 'mexican', label: 'Mexican', icon: '🇲🇽' },
+                            { id: 'american', label: 'American', icon: '🇺🇸' },
+                            { id: 'desserts', label: 'Desserts', icon: '🍰' },
+                            { id: 'beverages', label: 'Beverages', icon: '🍹' },
+                          ].map((cuisine) => (
+                            <button
+                              key={cuisine.id}
+                              type="button"
+                              onClick={() => setAiCuisine(cuisine.id)}
+                              className={`p-3 rounded-2xl border text-left transition-all active-press flex items-center gap-2 cursor-pointer ${
+                                aiCuisine === cuisine.id
+                                  ? 'border-indigo-500 bg-indigo-500/10 text-white font-bold'
+                                  : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-250 hover:border-slate-700'
+                              }`}
+                            >
+                              <span className="text-xl">{cuisine.icon}</span>
+                              <span className="text-xs">{cuisine.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Vibe / Style pills */}
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Establishment Vibe & Style</label>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { id: 'bistro', label: 'Casual Bistro' },
+                            { id: 'fine_dining', label: 'Fine Dining' },
+                            { id: 'fast_food', label: 'Fast Food / Express' },
+                            { id: 'cafe', label: 'Cozy Café' },
+                          ].map((vibe) => (
+                            <button
+                              key={vibe.id}
+                              type="button"
+                              onClick={() => setAiVibe(vibe.id)}
+                              className={`px-4 py-2.5 rounded-full text-xs font-semibold border transition-all active-press cursor-pointer ${
+                                aiVibe === vibe.id
+                                  ? 'border-purple-500 bg-purple-500/10 text-white font-bold'
+                                  : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+                              }`}
+                            >
+                              {vibe.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Dish Count Stepper/Slider */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Number of Dishes to Synthesize</label>
+                          <span className="text-xs font-black text-indigo-400">{aiCount} Dishes</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={aiCount}
+                          onChange={(e) => setAiCount(parseInt(e.target.value))}
+                          className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
+                        />
+                        <div className="flex justify-between text-[9px] text-slate-500 font-bold px-1 mt-1">
+                          <span>1 Dish</span>
+                          <span>5 Dishes</span>
+                          <span>10 Dishes</span>
+                        </div>
+                      </div>
+
+                      {/* Custom Prompt Constraints */}
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Custom Style Prompt (Optional)</label>
+                        <textarea
+                          placeholder="e.g. Include vegetarian recipes, make them extra spicy, style with gold leaf accents..."
+                          rows={3}
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          className="w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl px-4 py-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-slate-800 dark:text-white placeholder:text-slate-500"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Wizard Footer Action */}
                   <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
@@ -895,13 +1072,23 @@ export default function MenuPage() {
                     >
                       Close Wizard
                     </button>
-                    <button
-                      type="button"
-                      onClick={generateAiMenu}
-                      className="flex-1 py-3 rounded-2xl text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active-press transition-all cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4 text-purple-200" /> Synthesize Dishes via AI
-                    </button>
+                    {aiTab === 'scanner' ? (
+                      <button
+                        type="button"
+                        onClick={simulateOcrScan}
+                        className="flex-1 py-3 rounded-2xl text-xs font-black bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active-press transition-all cursor-pointer"
+                      >
+                        <FileText className="w-4 h-4 text-indigo-250 animate-pulse" /> Analyze & Parse Menu via OCR
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={generateAiMenu}
+                        className="flex-1 py-3 rounded-2xl text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active-press transition-all cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4 text-purple-200" /> Synthesize Dishes via AI
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
