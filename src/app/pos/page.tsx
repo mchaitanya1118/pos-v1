@@ -77,6 +77,9 @@ export default function PosPage() {
   const [passcodeConfirm, setPasscodeConfirm] = useState('');
   const [discountReason, setDiscountReason] = useState('');
   const [discountError, setDiscountError] = useState<string | null>(null);
+  
+  // Custom mobile tab/view manager for cart page
+  const [showCartOnMobile, setShowCartOnMobile] = useState<boolean>(false);
 
   // Load database structures
   const loadData = async () => {
@@ -666,7 +669,7 @@ export default function PosPage() {
           <div className="flex-grow flex flex-col xl:flex-row gap-5 overflow-hidden animate-fade-in pb-4">
             
             {/* Left menu item picker grid catalog */}
-            <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+            <div className={`${showCartOnMobile ? 'hidden xl:flex' : 'flex'} flex-1 flex flex-col gap-4 overflow-hidden`}>
               {/* Toolbar search row */}
               <div className="flex items-center justify-between shrink-0 select-none bg-white dark:bg-[#0b1120] p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <button
@@ -748,13 +751,41 @@ export default function PosPage() {
                   </div>
                 )}
               </div>
+
+              {/* Floating Checkout Button for Mobile */}
+              {cartItems.length > 0 && !showCartOnMobile && (
+                <div className="xl:hidden fixed bottom-16 left-4 right-4 z-40 animate-slide-up select-none">
+                  <button
+                    type="button"
+                    onClick={() => setShowCartOnMobile(true)}
+                    className="w-full bg-[#0b4f48] text-white hover:bg-[#083d37] py-3.5 px-6 rounded-2xl font-black text-sm flex items-center justify-between shadow-lg shadow-[#0b4f48]/20 active-press"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShoppingCart className="w-5 h-5 animate-pulse" />
+                      <span>View Cart ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
+                    </div>
+                    <span className="bg-white/20 px-3 py-1 rounded-xl text-xs font-black">
+                      {currencySymbol}{totals.grandTotal.toFixed(2)} →
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right Cart Sidebar (Order Summary calculations) */}
-            <div className="w-full xl:w-96 bg-white dark:bg-[#0b1120] border border-slate-250/50 dark:border-slate-800/80 rounded-[24px] p-5 flex flex-col justify-between overflow-hidden shadow-sm shrink-0">
+            <div className={`${showCartOnMobile ? 'flex' : 'hidden xl:flex'} w-full xl:w-96 bg-white dark:bg-[#0b1120] border border-slate-250/50 dark:border-slate-800/80 rounded-[24px] p-5 flex flex-col justify-between overflow-hidden shadow-sm shrink-0`}>
               <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3 select-none">
-                  <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wide">Summary checkout</span>
+                <div className="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800/60 pb-3 select-none">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCartOnMobile(false)}
+                      className="xl:hidden text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-xl transition-colors active-press"
+                    >
+                      ← Menu
+                    </button>
+                    <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wide">Summary checkout</span>
+                  </div>
                   <button type="button" onClick={clearCart} className="text-[10px] font-black text-red-500 hover:text-red-600">Clear All</button>
                 </div>
 

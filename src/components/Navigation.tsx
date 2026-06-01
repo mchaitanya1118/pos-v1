@@ -366,8 +366,8 @@ export default function Navigation({ children, activeTab }: NavigationProps) {
       </aside>
 
       {/* CORE WORKSPACE SPACE */}
-      <main className={`flex-grow min-w-0 ${isPosScreen ? 'p-2 md:p-4' : 'p-4 md:p-6'}`}>
-        <div className={`flex-1 flex flex-col h-full ${isPosScreen ? '' : 'max-w-7xl w-full mx-auto animate-fade-in'}`}>
+      <main className={`flex-grow min-w-0 ${isPosScreen ? 'p-2 md:p-4 pb-16 md:pb-4' : 'p-4 md:p-6 pb-20 md:pb-6'}`}>
+        <div className={`flex-grow flex flex-col h-full ${isPosScreen ? '' : 'max-w-7xl w-full mx-auto animate-fade-in'}`}>
           {children}
         </div>
       </main>

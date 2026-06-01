@@ -21,7 +21,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   operatorRole: null,
   operatorName: null,
   activeSettings: null,
-  theme: 'light', // default light mode for white and grey aesthetic
+  theme: 'dark', // Locked to premium dark mode as default
   isLoading: true,
 
   loadSession: async () => {
@@ -29,7 +29,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       set({ isLoading: true });
       const settings = await db.getSettings();
       
-      let theme: 'light' | 'dark' = 'light';
+      let theme: 'light' | 'dark' = 'dark';
       let isAuthenticated = false;
       let operatorRole: 'admin' | 'staff' | null = null;
       let operatorName: string | null = null;
@@ -43,11 +43,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         }
       }
 
-      set({ activeSettings: settings, theme, isAuthenticated, operatorRole, operatorName, isLoading: false });
+      set({ activeSettings: settings, theme: 'dark', isAuthenticated, operatorRole, operatorName, isLoading: false });
       
-      // Force light theme, disable dark mode application
+      // Enforce dark mode class on html root element
       if (typeof window !== 'undefined') {
-        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('dark');
       }
     } catch (err) {
       console.error("Failed to load session details", err);
@@ -122,7 +122,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   toggleTheme: () => {
-    // Disabled system theme colors. App remains in light/white aesthetic permanently.
+    // Locked to dark theme permanently
   },
 }));
 
