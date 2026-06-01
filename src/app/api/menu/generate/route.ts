@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
       const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
 
       const prompt = `You are a professional restaurant POS assistant and menu OCR specialist. 
-Analyze this menu image and extract all menu categories (e.g., Starters, Main Course, Beverages, Desserts, Pizza, etc.) and all individual menu items under those categories.
+Analyze this menu image and extract EVERY SINGLE menu category and EVERY SINGLE individual menu item under those categories. 
+CRITICAL: Do not summarize, group, or skip ANY item visible on the menu. You must transcribe 100% of the items.
 
 For each category, extract:
 1. Category Name (e.g., "Main Course")
@@ -72,7 +73,9 @@ Respond strictly in valid raw JSON matching this schema. Do not enclose in markd
               ]
             }],
             generationConfig: {
-              responseMimeType: "application/json"
+              responseMimeType: "application/json",
+              maxOutputTokens: 8192,
+              temperature: 0.1
             }
           })
         }
