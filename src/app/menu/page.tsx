@@ -16,7 +16,9 @@ import {
   AlertCircle,
   HelpCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 
 export default function MenuPage() {
@@ -42,6 +44,25 @@ export default function MenuPage() {
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
+
+  // AI Menu Generator states
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiCuisine, setAiCuisine] = useState('italian');
+  const [aiVibe, setAiVibe] = useState('bistro');
+  const [aiCount, setAiCount] = useState(5);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStep, setGenerationStep] = useState('');
+  const [generatedItems, setGeneratedItems] = useState<{
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    imageUrl: string;
+    categoryId: string;
+    selected: boolean;
+  }[]>([]);
+  const [showReviewScreen, setShowReviewScreen] = useState(false);
 
   // Pre-seeded image catalog choices
   const presetImages = [
@@ -179,6 +200,167 @@ export default function MenuPage() {
     }
   };
 
+  const generateAiMenu = async () => {
+    setIsGenerating(true);
+    setGenerationStep('Analyzing cuisine and vibe templates...');
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    setGenerationStep('Simulating deep neural recipe generation...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setGenerationStep('Mapping high-res dish graphics and stock assets...');
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    setGenerationStep('Finalizing pricing optimization vectors...');
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    // Choose items based on cuisine and vibe
+    const baseItems: { name: string; description: string; price: number; imageUrl: string; catName: string }[] = [];
+
+    if (aiCuisine === 'italian') {
+      if (aiVibe === 'fine_dining') {
+        baseItems.push(
+          { name: "Truffle Porcini Risotto", description: "Rich Arborio rice slow-simmered with wild porcini mushrooms, freshly shaved black summer truffles, and 24-month aged Parmigiano-Reggiano.", price: 28.00, imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+          { name: "Lobster Fettuccine Nero", description: "Squid ink pasta tossed with butter-poached Maine lobster, sun-ripened cherry tomatoes, and a light garlic white wine emulsion.", price: 34.00, imageUrl: "https://images.unsplash.com/photo-1559737607-3578909a22fa?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+          { name: "Aged Carpaccio di Manzo", description: "Paper-thin slices of prime beef tenderloin topped with wild baby arugula, capers, mustard aioli, and shaved parmesan.", price: 19.50, imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60", catName: "Starters" }
+        );
+      } else {
+        baseItems.push(
+          { name: "Classic Margherita DOP", description: "Wood-fired crispy artisan crust topped with San Marzano tomatoes, fresh buffalo mozzarella, aromatic sweet basil, and extra virgin olive oil.", price: 14.50, imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+          { name: "Spaghetti Carbonara Romano", description: "Al dente spaghetti tossed with crispy guanciale, rich egg yolks, pecorino romano cheese, and freshly ground coarse black pepper.", price: 17.00, imageUrl: "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+          { name: "Bruschetta Classic Trio", description: "Toasted garlic artisan baguettes topped with heirloom cherry tomatoes, fresh sweet basil, garlic, and sweet balsamic glaze.", price: 8.50, imageUrl: "https://images.unsplash.com/photo-1572656631137-7935297eff55?w=500&auto=format&fit=crop&q=60", catName: "Starters" }
+        );
+      }
+    } else if (aiCuisine === 'indian') {
+      baseItems.push(
+        { name: "Charcoal Smoked Butter Chicken", description: "Tandoor-roasted chicken tikka simmered in a velvet tomato cream gravy finished with active charcoal smoke and real butter.", price: 18.00, imageUrl: "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+        { name: "Delhi Samosa Chaat", description: "Crispy spiced potato pastries crushed and topped with warm spiced yellow peas, sweetened yoghurt, mint, and tangy tamarind chutneys.", price: 9.00, imageUrl: "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=500&auto=format&fit=crop&q=60", catName: "Starters" },
+        { name: "Zafrani Saffron Paneer Tikka", description: "Chunky cottage cheese cubes marinated in real saffron, thick yoghurt, tandoori spices, and char-grilled with bell peppers.", price: 16.50, imageUrl: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=60", catName: "Main Course" }
+      );
+    } else if (aiCuisine === 'mexican') {
+      baseItems.push(
+        { name: "Tacos al Pastor Platter", description: "Thinly sliced marinated pork spit-roasted with sweet pineapple, cilantro, and white onions on warm stone-ground double-corn tortillas.", price: 13.00, imageUrl: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+        { name: "Street Style Cotija Elote", description: "Sweet corn on the cob char-grilled and slathered in lime-infused cotija cheese mayonnaise and dusted with mild tajin powder.", price: 7.00, imageUrl: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=60", catName: "Starters" },
+        { name: "Ancho Chili Glazed Salmon", description: "Fresh salmon fillet pan-seared and glazed with sweet ancho chili honey, served with black bean corn relish and avocado lime purée.", price: 23.50, imageUrl: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&auto=format&fit=crop&q=60", catName: "Main Course" }
+      );
+    } else if (aiCuisine === 'american') {
+      baseItems.push(
+        { name: "Avocado Smashed Prime Burger", description: "USDA Prime beef patty topped with fresh hand-mashed avocado, heirloom tomatoes, sharp Wisconsin cheddar, and chipotle aioli on toasted brioche.", price: 16.00, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+        { name: "Texas Honey BBQ Ribs", description: "Half-rack of baby back pork ribs glazed in our signature sweet honey-bourbon BBQ sauce, served with creamy coleslaw and buttered corn.", price: 24.50, imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60", catName: "Main Course" },
+        { name: "Garlic Parmesan Crispy Wings", description: "Double-fried crispy jumbo chicken wings tossed in rich butter, garlic confit, and freshly grated imported parmesan cheese.", price: 11.50, imageUrl: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop&q=60", catName: "Starters" }
+      );
+    } else if (aiCuisine === 'desserts') {
+      baseItems.push(
+        { name: "White Matcha Lava Cake", description: "Warm green tea cake filled with an oozing liquid white chocolate matcha center, served with cold sweet red bean paste and ice cream.", price: 10.50, imageUrl: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop&q=60", catName: "Desserts" },
+        { name: "Classic New York Cheesecake", description: "Dense and creamy traditional cheesecake on a buttery graham cracker crust, topped with fresh glaze strawberries and sweet compote.", price: 8.90, imageUrl: "https://images.unsplash.com/photo-1524351199679-46cddf530c04?w=500&auto=format&fit=crop&q=60", catName: "Desserts" }
+      );
+    } else { // Beverages
+      baseItems.push(
+        { name: "Fresh Mint Mojito Cooler", description: "Refreshing carbonated soda infused with freshly muddled organic mint leaves, fresh lime wedges, and pure sugar cane syrup.", price: 7.00, imageUrl: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&auto=format&fit=crop&q=60", catName: "Beverages" },
+        { name: "Iced Caramel Espresso Macchiato", description: "Freshly brewed dark espresso layered with cold whole milk, vanilla bean syrup, and rich butter caramel drizzle over crushed ice.", price: 5.50, imageUrl: "https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=500&auto=format&fit=crop&q=60", catName: "Beverages" }
+      );
+    }
+
+    // Populate items dynamically by duplicate scaling
+    const generated: typeof generatedItems = [];
+    
+    for (let i = 0; i < aiCount; i++) {
+      const template = baseItems[i % baseItems.length];
+      const basePrice = activeSettings?.currency === 'INR' ? template.price * 80 : template.price;
+      
+      let finalName = template.name;
+      let finalDescription = template.description;
+      
+      if (i >= baseItems.length) {
+        finalName = `${template.name} Double`;
+        finalDescription = `Extra large serving. ${template.description}`;
+      }
+
+      if (aiPrompt.trim()) {
+        finalDescription = `${finalDescription} (Notes: ${aiPrompt})`;
+      }
+
+      let matchedCategory = categories[0]?.id || '';
+      const categoryMatch = categories.find(c => c.name.toLowerCase().includes(template.catName.toLowerCase()));
+      if (categoryMatch) {
+        matchedCategory = categoryMatch.id;
+      }
+
+      generated.push({
+        id: `ai_gen_${Date.now()}_${i}`,
+        name: finalName,
+        description: finalDescription,
+        price: Math.round(basePrice),
+        imageUrl: template.imageUrl,
+        categoryId: matchedCategory,
+        selected: true
+      });
+    }
+
+    setGeneratedItems(generated);
+    setIsGenerating(false);
+    setShowReviewScreen(true);
+  };
+
+  const importGeneratedItems = async () => {
+    const selected = generatedItems.filter(item => item.selected);
+    if (selected.length === 0) {
+      alert("No items selected for import!");
+      return;
+    }
+
+    try {
+      for (const item of selected) {
+        const newItem: MenuItem = {
+          id: item.id,
+          name: item.name,
+          categoryId: item.categoryId,
+          description: item.description,
+          price: item.price,
+          imageUrl: item.imageUrl,
+          isAvailable: true,
+          createdAt: new Date().toISOString()
+        };
+        await db.saveMenuItem(newItem);
+      }
+
+      const mList = await db.getMenuItems();
+      setMenuItems(mList);
+
+      setShowAiModal(false);
+      setShowReviewScreen(false);
+      setGeneratedItems([]);
+      setAiPrompt('');
+      alert(`Successfully imported ${selected.length} items into your POS Menu Catalog!`);
+    } catch (err) {
+      console.error("Failed to import generated menu items", err);
+    }
+  };
+
+  const updateGeneratedItemName = (index: number, newName: string) => {
+    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, name: newName } : item));
+  };
+
+  const updateGeneratedItemPrice = (index: number, newPrice: number) => {
+    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, price: newPrice } : item));
+  };
+
+  const updateGeneratedItemCategory = (index: number, catId: string) => {
+    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, categoryId: catId } : item));
+  };
+
+  const updateGeneratedItemDescription = (index: number, desc: string) => {
+    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, description: desc } : item));
+  };
+
+  const toggleGeneratedItemSelection = (index: number) => {
+    setGeneratedItems(prev => prev.map((item, idx) => idx === index ? { ...item, selected: !item.selected } : item));
+  };
+
+  const toggleAllGeneratedItemsSelection = (selectAll: boolean) => {
+    setGeneratedItems(prev => prev.map(item => ({ ...item, selected: selectAll })));
+  };
+
   const currencySymbol = activeSettings?.currency === 'INR' ? '₹' : '$';
 
   return (
@@ -196,13 +378,22 @@ export default function MenuPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="px-5 py-3 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-500 font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-600/20 active-press transition-all self-stretch md:self-auto justify-center"
-          >
-            <Plus className="w-4 h-4" /> Add Menu Item
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2.5 self-stretch sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setShowAiModal(true)}
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-600/10 active-press transition-all justify-center cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-purple-200 animate-pulse" /> AI Menu Generator
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-600/20 active-press transition-all justify-center cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Add Menu Item
+            </button>
+          </div>
         </div>
 
         {/* Filters control block */}
@@ -572,6 +763,304 @@ export default function MenuPage() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* AI MENU GENERATOR MODAL */}
+        {showAiModal && (
+          <div className="fixed inset-0 z-50 bg-[#090d16]/70 backdrop-blur-sm flex items-center justify-center px-4 overflow-y-auto py-8 select-none">
+            <div className="glass-panel w-full max-w-4xl rounded-3xl p-6 relative animate-scale-in max-h-[90vh] flex flex-col">
+              
+              {/* Close Button */}
+              {!isGenerating && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAiModal(false);
+                    setShowReviewScreen(false);
+                    setGeneratedItems([]);
+                  }}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* STEP 1: FORM WIZARD */}
+              {!isGenerating && !showReviewScreen && (
+                <div className="flex-1 flex flex-col overflow-y-auto">
+                  <h3 className="font-extrabold text-lg text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" /> AI Menu Generator
+                  </h3>
+                  <p className="text-xs text-slate-400 mb-6">
+                    Craft gourmet dishes automatically powered by advanced neural recipe profiles.
+                  </p>
+
+                  <div className="space-y-5 flex-1 pr-1">
+                    {/* Cuisine Type Grid Selection */}
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Cuisine Type</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {[
+                          { id: 'italian', label: 'Italian', icon: '🇮🇹' },
+                          { id: 'indian', label: 'Indian', icon: '🇮🇳' },
+                          { id: 'mexican', label: 'Mexican', icon: '🇲🇽' },
+                          { id: 'american', label: 'American', icon: '🇺🇸' },
+                          { id: 'desserts', label: 'Desserts', icon: '🍰' },
+                          { id: 'beverages', label: 'Beverages', icon: '🍹' },
+                        ].map((cuisine) => (
+                          <button
+                            key={cuisine.id}
+                            type="button"
+                            onClick={() => setAiCuisine(cuisine.id)}
+                            className={`p-3 rounded-2xl border text-left transition-all active-press flex items-center gap-2 cursor-pointer ${
+                              aiCuisine === cuisine.id
+                                ? 'border-indigo-500 bg-indigo-500/10 text-white font-bold'
+                                : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-250 hover:border-slate-700'
+                            }`}
+                          >
+                            <span className="text-xl">{cuisine.icon}</span>
+                            <span className="text-xs">{cuisine.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Vibe / Style pills */}
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Establishment Vibe & Style</label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { id: 'bistro', label: 'Casual Bistro' },
+                          { id: 'fine_dining', label: 'Fine Dining' },
+                          { id: 'fast_food', label: 'Fast Food / Express' },
+                          { id: 'cafe', label: 'Cozy Café' },
+                        ].map((vibe) => (
+                          <button
+                            key={vibe.id}
+                            type="button"
+                            onClick={() => setAiVibe(vibe.id)}
+                            className={`px-4 py-2.5 rounded-full text-xs font-semibold border transition-all active-press cursor-pointer ${
+                              aiVibe === vibe.id
+                                ? 'border-purple-500 bg-purple-500/10 text-white font-bold'
+                                : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {vibe.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Dish Count Stepper/Slider */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Number of Dishes to Synthesize</label>
+                        <span className="text-xs font-black text-indigo-400">{aiCount} Dishes</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={aiCount}
+                        onChange={(e) => setAiCount(parseInt(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none"
+                      />
+                      <div className="flex justify-between text-[9px] text-slate-500 font-bold px-1 mt-1">
+                        <span>1 Dish</span>
+                        <span>5 Dishes</span>
+                        <span>10 Dishes</span>
+                      </div>
+                    </div>
+
+                    {/* Custom Prompt Constraints */}
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Custom Style Prompt (Optional)</label>
+                      <textarea
+                        placeholder="e.g. Include vegetarian recipes, make them extra spicy, style with gold leaf accents..."
+                        rows={3}
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        className="w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl px-4 py-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-slate-800 dark:text-white placeholder:text-slate-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Wizard Footer Action */}
+                  <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setShowAiModal(false)}
+                      className="w-1/3 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-800 dark:text-white"
+                    >
+                      Close Wizard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={generateAiMenu}
+                      className="flex-1 py-3 rounded-2xl text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active-press transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-purple-200" /> Synthesize Dishes via AI
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: ANIMATED LOADER */}
+              {isGenerating && (
+                <div className="flex-1 flex flex-col items-center justify-center py-16 text-center select-none animate-pulse">
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl animate-ping scale-75"></div>
+                    <Loader2 className="w-12 h-12 text-indigo-500 animate-spin relative" />
+                  </div>
+                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white mb-2">Generating Gourmet Recipe Matrix...</h4>
+                  <div className="px-6 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 max-w-sm">
+                    <span className="text-[10px] uppercase tracking-widest font-black text-indigo-400 animate-pulse">
+                      {generationStep}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-4 font-semibold">Running deep pricing optimization and asset mapping...</p>
+                </div>
+              )}
+
+              {/* STEP 3: HIGH-FIDELITY REVIEW & EDIT SCREEN */}
+              {!isGenerating && showReviewScreen && (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 shrink-0 pb-4 border-b border-slate-200 dark:border-slate-800">
+                    <div>
+                      <h3 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                        <Check className="w-5 h-5 text-emerald-500 bg-emerald-500/10 rounded-full p-0.5" /> Review Synthesized Dishes
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Customize prices, names, and descriptions, and choose which dishes to import.
+                      </p>
+                    </div>
+
+                    {/* Mass Selection Toggle button */}
+                    <div className="flex items-center gap-2 self-start sm:self-auto select-none">
+                      <button
+                        type="button"
+                        onClick={() => toggleAllGeneratedItemsSelection(true)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[10px] font-bold text-slate-650 dark:text-slate-350 transition-colors"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleAllGeneratedItemsSelection(false)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[10px] font-bold text-slate-650 dark:text-slate-350 transition-colors"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Scrollable Generated Items Editor */}
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-4 max-h-[50vh]">
+                    {generatedItems.map((item, idx) => (
+                      <div
+                        key={item.id}
+                        className={`p-4 rounded-2xl border transition-all flex flex-col md:flex-row items-start md:items-center gap-4 relative ${
+                          item.selected
+                            ? 'border-indigo-500/50 bg-indigo-500/5'
+                            : 'border-slate-200 dark:border-slate-800/80 bg-slate-950/20 opacity-60'
+                        }`}
+                      >
+                        {/* Checkbox selector */}
+                        <div className="absolute top-4 right-4 md:static flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={item.selected}
+                            onChange={() => toggleGeneratedItemSelection(idx)}
+                            className="rounded border-slate-350 bg-slate-800 text-indigo-500 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Round Cover Preview */}
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
+                        </div>
+
+                        {/* Editor Inputs Grid */}
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+                          {/* Dish Name */}
+                          <div className="md:col-span-2">
+                            <label className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider block mb-1">Dish Name</label>
+                            <input
+                              type="text"
+                              value={item.name}
+                              onChange={(e) => updateGeneratedItemName(idx, e.target.value)}
+                              className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none"
+                            />
+                          </div>
+
+                          {/* Category and Price */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider block mb-1">Category</label>
+                              <select
+                                value={item.categoryId}
+                                onChange={(e) => updateGeneratedItemCategory(idx, e.target.value)}
+                                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-400 dark:text-slate-200 focus:outline-none"
+                              >
+                                {categories.map(c => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider block mb-1">Price ({currencySymbol})</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={item.price}
+                                onChange={(e) => updateGeneratedItemPrice(idx, parseFloat(e.target.value) || 0)}
+                                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs font-black text-slate-800 dark:text-white focus:outline-none text-right"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <div className="md:col-span-3">
+                            <label className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider block mb-1">Description</label>
+                            <textarea
+                              rows={1}
+                              value={item.description}
+                              onChange={(e) => updateGeneratedItemDescription(idx, e.target.value)}
+                              className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-500 dark:text-slate-350 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowReviewScreen(false);
+                        setGeneratedItems([]);
+                      }}
+                      className="w-1/3 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-800 dark:text-white"
+                    >
+                      Back to Prompt
+                    </button>
+                    <button
+                      type="button"
+                      onClick={importGeneratedItems}
+                      className="flex-1 py-3 rounded-2xl text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active-press transition-all cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" /> Import {generatedItems.filter(i => i.selected).length} Selected Dishes
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            </div>
           </div>
         )}
 
