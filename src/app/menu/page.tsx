@@ -622,7 +622,7 @@ export default function MenuPage() {
           </div>
         )}
 
-        {/* ADD MENU ITEM MODAL */})}
+        {/* ADD MENU ITEM MODAL */}
 
         {/* AI MENU GENERATOR WIZARD MODAL */}
         {showAIModal && (
