@@ -45,9 +45,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
       set({ activeSettings: settings, theme: 'dark', isAuthenticated, operatorRole, operatorName, isLoading: false });
       
-      // Enforce dark mode class on html root element
+      // Enforce light mode class on html root element
       if (typeof window !== 'undefined') {
-        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('dark');
       }
     } catch (err) {
       console.error("Failed to load session details", err);
