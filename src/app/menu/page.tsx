@@ -18,9 +18,13 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  RefreshCw,
+  Image as ImageIcon,
+  Upload,
   UploadCloud,
   Wand2
 } from 'lucide-react';
+import { supabase } from '@/lib/db/supabase-db';
 import confetti from 'canvas-confetti';
 
 export default function MenuPage() {
@@ -33,6 +37,7 @@ export default function MenuPage() {
   // Modals / Form toggles
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // AI Menu Generator States
   const [showAIModal, setShowAIModal] = useState(false);
@@ -150,6 +155,37 @@ export default function MenuPage() {
       setShowAddModal(false);
     } catch (err) {
       console.error("Failed to add menu item", err);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !supabase) return;
+
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('menu-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('menu-images')
+        .getPublicUrl(filePath);
+
+      setImageUrl(data.publicUrl);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploading(false);
+      // reset file input
+      e.target.value = '';
     }
   };
 
@@ -570,12 +606,31 @@ export default function MenuPage() {
 
                                   <div>
                                     <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Image URL</label>
-                                    <input
-                                      type="url"
-                                      value={imageUrl || ''}
-                                      onChange={(e) => setImageUrl(e.target.value)}
-                                      className="w-full bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
-                                    />
+                                    <div className="flex gap-2">
+                                      <input
+                                        type="url"
+                                        value={imageUrl || ''}
+                                        onChange={(e) => setImageUrl(e.target.value)}
+                                        className="w-full bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
+                                        placeholder="https://..."
+                                      />
+                                      <div className="relative shrink-0">
+                                        <input 
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={handleImageUpload}
+                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                          disabled={isUploading}
+                                        />
+                                        <button 
+                                          type="button"
+                                          disabled={isUploading}
+                                          className="flex items-center justify-center h-full px-4 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                        >
+                                          {isUploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                        </button>
+                                      </div>
+                                    </div>
                                   </div>
 
                                   <div className="flex items-center justify-between pt-2">
