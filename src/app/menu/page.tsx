@@ -432,7 +432,8 @@ export default function MenuPage() {
                     <th className="p-4 text-center">Availability Status</th>
                     <th className="p-4 text-center">Actions</th>
                   </tr>
-                </thead                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                   {filteredMenuItems.map((item) => {
                     const itemCat = categories.find(c => c.id === item.categoryId)?.name || 'General';
                     const isEditingThis = editingItem?.id === item.id;
