@@ -666,7 +666,7 @@ export default function MenuPage() {
                   <input
                     type="text"
                     required
-                    value={name}
+                    value={name || ''}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
                   />
@@ -676,7 +676,7 @@ export default function MenuPage() {
                   <div>
                     <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Category</label>
                     <select
-                      value={categoryId}
+                      value={categoryId || ''}
                       onChange={(e) => setCategoryId(e.target.value)}
                       className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
                     >
@@ -693,7 +693,7 @@ export default function MenuPage() {
                       step="0.01"
                       min="0"
                       required
-                      value={price}
+                      value={price ?? ''}
                       onChange={(e) => setPrice(e.target.value)}
                       className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
                     />
@@ -704,7 +704,7 @@ export default function MenuPage() {
                   <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Description</label>
                   <textarea
                     rows={2}
-                    value={description}
+                    value={description || ''}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
                   />
@@ -714,7 +714,7 @@ export default function MenuPage() {
                   <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Image URL</label>
                   <input
                     type="url"
-                    value={imageUrl}
+                    value={imageUrl || ''}
                     onChange={(e) => setImageUrl(e.target.value)}
                     className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none mb-2"
                   />
