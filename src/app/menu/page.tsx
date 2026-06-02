@@ -32,7 +32,6 @@ export default function MenuPage() {
   
   // Modals / Form toggles
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
   // AI Menu Generator States
@@ -155,6 +154,10 @@ export default function MenuPage() {
   };
 
   const handleStartEdit = (item: MenuItem) => {
+    if (editingItem?.id === item.id) {
+      setEditingItem(null); // toggle off if clicking same item
+      return;
+    }
     setEditingItem(item);
     setName(item.name);
     setCategoryId(item.categoryId);
@@ -162,7 +165,6 @@ export default function MenuPage() {
     setPrice(String(item.price));
     setImageUrl(item.imageUrl);
     setIsAvailable(item.isAvailable);
-    setShowEditModal(true);
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
@@ -182,7 +184,6 @@ export default function MenuPage() {
     try {
       await db.saveMenuItem(updatedItem);
       setMenuItems(prev => prev.map(m => m.id === editingItem.id ? updatedItem : m).sort((a,b) => a.name.localeCompare(b.name)));
-      setShowEditModal(false);
       setEditingItem(null);
       
       setName('');
@@ -431,80 +432,187 @@ export default function MenuPage() {
                     <th className="p-4 text-center">Availability Status</th>
                     <th className="p-4 text-center">Actions</th>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
+                </thead                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                   {filteredMenuItems.map((item) => {
                     const itemCat = categories.find(c => c.id === item.categoryId)?.name || 'General';
+                    const isEditingThis = editingItem?.id === item.id;
+                    
                     return (
-                      <tr key={item.id} className="hover:bg-slate-200/20 dark:hover:bg-slate-800/10 font-medium">
-                        {/* Rounded thumbnail and text info */}
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 shrink-0">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
+                      <React.Fragment key={item.id}>
+                        <tr className={`${isEditingThis ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'hover:bg-slate-200/20 dark:hover:bg-slate-800/10'} font-medium transition-colors`}>
+                          {/* Rounded thumbnail and text info */}
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">{item.name}</h4>
+                                <p className="text-[10px] text-slate-400 line-clamp-1 max-w-xs">{item.description}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">{item.name}</h4>
-                              <p className="text-[10px] text-slate-400 line-clamp-1 max-w-xs">{item.description}</p>
-                            </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 select-none">
-                            {itemCat}
-                          </span>
-                        </td>
+                          <td className="p-4">
+                            <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 select-none">
+                              {itemCat}
+                            </span>
+                          </td>
 
-                        <td className="p-4 text-right font-black text-slate-900 dark:text-white text-sm">
-                          {currencySymbol}{item.price.toFixed(2)}
-                        </td>
+                          <td className="p-4 text-right font-black text-slate-900 dark:text-white text-sm">
+                            {currencySymbol}{item.price.toFixed(2)}
+                          </td>
 
-                        {/* Visual stock availability toggle */}
-                        <td className="p-4 text-center select-none">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleAvailability(item)}
-                            className={`px-3 py-1.5 rounded-2xl text-[9px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1 transition-all active-press ${
-                              item.isAvailable
-                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-red-500/15 text-red-500'
-                            }`}
-                          >
-                            {item.isAvailable ? (
-                              <>
-                                <Eye className="w-3.5 h-3.5" /> In Stock
-                              </>
-                            ) : (
-                              <>
-                                <EyeOff className="w-3.5 h-3.5" /> Out of Stock
-                              </>
-                            )}
-                          </button>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="p-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
+                          {/* Visual stock availability toggle */}
+                          <td className="p-4 text-center select-none">
                             <button
                               type="button"
-                              onClick={() => handleStartEdit(item)}
-                              className="p-2 rounded bg-indigo-500/10 text-indigo-500 hover:bg-indigo-600 hover:text-white transition-all active-press"
+                              onClick={() => handleToggleAvailability(item)}
+                              className={`px-3 py-1.5 rounded-2xl text-[9px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1 transition-all active-press ${
+                                item.isAvailable
+                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                  : 'bg-red-500/15 text-red-500'
+                              }`}
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
+                              {item.isAvailable ? (
+                                <>
+                                  <Eye className="w-3.5 h-3.5" /> In Stock
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="w-3.5 h-3.5" /> Out of Stock
+                                </>
+                              )}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteItem(item.id)}
-                              className="p-2 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all active-press"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
+                          </td>
 
-                      </tr>
+                          {/* Actions */}
+                          <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEdit(item)}
+                                className={`p-2 rounded transition-all active-press ${isEditingThis ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-500/10 text-indigo-500 hover:bg-indigo-600 hover:text-white'}`}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-2 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all active-press"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Expandable Inline Edit Form */}
+                        {isEditingThis && (
+                          <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                            <td colSpan={5} className="p-6 border-b border-slate-200 dark:border-slate-800/60">
+                              <form onSubmit={handleSaveEdit} className="w-full max-w-2xl mx-auto animate-scale-in">
+                                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                  <Edit2 className="w-4 h-4 text-indigo-500" /> Quick Edit: {item.name}
+                                </h3>
+
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Item Name</label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={name || ''}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Category</label>
+                                      <select
+                                        value={categoryId || ''}
+                                        onChange={(e) => setCategoryId(e.target.value)}
+                                        className="w-full bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
+                                      >
+                                        {categories.map(c => (
+                                          <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-3 gap-4">
+                                    <div className="col-span-2">
+                                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Description</label>
+                                      <input
+                                        type="text"
+                                        value={description || ''}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        className="w-full bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Price ({currencySymbol})</label>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        required
+                                        value={price ?? ''}
+                                        onChange={(e) => setPrice(e.target.value)}
+                                        className="w-full bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Image URL</label>
+                                    <input
+                                      type="url"
+                                      value={imageUrl || ''}
+                                      onChange={(e) => setImageUrl(e.target.value)}
+                                      className="w-full bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
+                                    />
+                                  </div>
+
+                                  <div className="flex items-center justify-between pt-2">
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        id={`editIsAvailable-${item.id}`}
+                                        checked={isAvailable}
+                                        onChange={(e) => setIsAvailable(e.target.checked)}
+                                        className="rounded border-slate-350 bg-slate-800 text-indigo-500 focus:ring-indigo-500 w-4 h-4"
+                                      />
+                                      <label htmlFor={`editIsAvailable-${item.id}`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        Immediately Available in POS Catalog
+                                      </label>
+                                    </div>
+                                    
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingItem(null)}
+                                        className="px-5 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        type="submit"
+                                        className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20"
+                                      >
+                                        Save Changes
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </form>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
@@ -513,248 +621,7 @@ export default function MenuPage() {
           </div>
         )}
 
-        {/* ADD MENU ITEM MODAL */}
-        {showAddModal && (
-          <div className="fixed inset-0 z-50 bg-[#090d16]/70 backdrop-blur-sm flex items-center justify-center px-4 overflow-y-auto py-8 select-none">
-            <form onSubmit={handleAddMenuItem} className="glass-panel w-full max-w-md rounded-3xl p-6 relative animate-scale-in">
-              <button
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <h3 className="font-extrabold text-base text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-indigo-500" /> Create Menu Item
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Item Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Truffle Steak Fries"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Menu Category</label>
-                    <select
-                      value={categoryId}
-                      onChange={(e) => setCategoryId(e.target.value)}
-                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
-                    >
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Price ({currencySymbol})</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      required
-                      placeholder="0.00"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Dish Description</label>
-                  <textarea
-                    placeholder="Describe main ingredients or style..."
-                    rows={2}
-                    value={description || ''}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
-                  />
-                </div>
-
-                {/* Thumbnails picker or custom entry */}
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Image URL (or select preset below)</label>
-                  <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={imageUrl || ''}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none mb-2"
-                  />
-                  <div className="grid grid-cols-4 gap-1.5 overflow-x-auto py-1">
-                    {presetImages.map((p, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setImageUrl(p.url)}
-                        className={`p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-indigo-500/10 text-[9px] font-bold border truncate ${
-                          imageUrl === p.url ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-200 dark:border-slate-700'
-                        }`}
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isAvailableCheckbox"
-                    checked={isAvailable}
-                    onChange={(e) => setIsAvailable(e.target.checked)}
-                    className="rounded border-slate-350 bg-slate-800 text-indigo-500 focus:ring-indigo-500 w-4 h-4"
-                  />
-                  <label htmlFor="isAvailableCheckbox" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Immediately Available in POS Catalog
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex gap-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="w-1/3 py-2.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-500 animate-pulse"
-                >
-                  Create Catalog Card
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* EDIT MENU ITEM MODAL */}
-        {showEditModal && editingItem && (
-          <div className="fixed inset-0 z-50 bg-[#090d16]/70 backdrop-blur-sm flex items-center justify-center px-4 overflow-y-auto py-8 select-none">
-            <form onSubmit={handleSaveEdit} className="glass-panel w-full max-w-md rounded-3xl p-6 relative animate-scale-in">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingItem(null);
-                }}
-                className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <h3 className="font-extrabold text-base text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-500" /> Edit {editingItem.name}
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Item Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={name || ''}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Category</label>
-                    <select
-                      value={categoryId || ''}
-                      onChange={(e) => setCategoryId(e.target.value)}
-                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
-                    >
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Price ({currencySymbol})</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      required
-                      value={price ?? ''}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Description</label>
-                  <textarea
-                    rows={2}
-                    value={description || ''}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Image URL</label>
-                  <input
-                    type="url"
-                    value={imageUrl || ''}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none mb-2"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="editIsAvailable"
-                    checked={isAvailable}
-                    onChange={(e) => setIsAvailable(e.target.checked)}
-                    className="rounded border-slate-350 bg-slate-800 text-indigo-500 focus:ring-indigo-500 w-4 h-4"
-                  />
-                  <label htmlFor="editIsAvailable" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Immediately Available in POS Catalog
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex gap-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setEditingItem(null);
-                  }}
-                  className="w-1/3 py-2.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-500"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+        {/* ADD MENU ITEM MODAL */})}
 
         {/* AI MENU GENERATOR WIZARD MODAL */}
         {showAIModal && (
