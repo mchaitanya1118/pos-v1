@@ -576,7 +576,7 @@ export default function MenuPage() {
                   <textarea
                     placeholder="Describe main ingredients or style..."
                     rows={2}
-                    value={description}
+                    value={description || ''}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
                   />
@@ -588,7 +588,7 @@ export default function MenuPage() {
                   <input
                     type="url"
                     placeholder="https://images.unsplash.com/..."
-                    value={imageUrl}
+                    value={imageUrl || ''}
                     onChange={(e) => setImageUrl(e.target.value)}
                     className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none mb-2"
                   />
@@ -879,7 +879,7 @@ export default function MenuPage() {
                               <input
                                 type="text"
                                 required
-                                value={cat.name}
+                                value={cat.name || ''}
                                 onChange={(e) => {
                                   const updated = { ...aiGeneratedMenu };
                                   updated.categories[catIdx].name = e.target.value;
@@ -915,7 +915,7 @@ export default function MenuPage() {
                                       <input
                                         type="text"
                                         required
-                                        value={item.name}
+                                        value={item.name || ''}
                                         onChange={(e) => {
                                           const updated = { ...aiGeneratedMenu };
                                           updated.categories[catIdx].items[itemIdx].name = e.target.value;
@@ -931,7 +931,7 @@ export default function MenuPage() {
                                         step="0.01"
                                         min="0"
                                         required
-                                        value={item.price}
+                                        value={item.price ?? ''}
                                         onChange={(e) => {
                                           const updated = { ...aiGeneratedMenu };
                                           updated.categories[catIdx].items[itemIdx].price = parseFloat(e.target.value) || 0;
@@ -948,7 +948,7 @@ export default function MenuPage() {
                                       <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Ingredients / Description</label>
                                       <input
                                         type="text"
-                                        value={item.description}
+                                        value={item.description || ''}
                                         onChange={(e) => {
                                           const updated = { ...aiGeneratedMenu };
                                           updated.categories[catIdx].items[itemIdx].description = e.target.value;
