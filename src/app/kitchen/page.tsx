@@ -51,7 +51,14 @@ export default function KitchenPage() {
       setCurrentTime(new Date());
     }, 5000);
 
-    return () => clearInterval(interval);
+    const unsubscribe = db.onDatabaseUpdate(() => {
+      loadData();
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, []);
 
   // Update a KOT's status

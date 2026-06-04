@@ -26,6 +26,39 @@ import {
 export default function SettingsPage() {
   const { activeSettings, updateSettings } = useSessionStore();
   const [success, setSuccess] = useState<string | null>(null);
+  
+  // Wipe Data State
+  const [wipePasscode, setWipePasscode] = useState('');
+  const [wipeError, setWipeError] = useState<string | null>(null);
+  const [isWiping, setIsWiping] = useState(false);
+
+  const handleWipeData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWipeError(null);
+    const actualPasscode = activeSettings?.passcode || '1234';
+    if (wipePasscode !== actualPasscode) {
+      setWipeError('Incorrect Admin Passcode.');
+      return;
+    }
+    if (!confirm('CRITICAL WARNING: This will permanently delete ALL orders, payments, expenses, and ledger entries. Your menu and settings will remain. Are you absolutely sure?')) {
+      return;
+    }
+    setIsWiping(true);
+    try {
+      // Wipe Data
+      if ((db as any).wipeTransactionData) {
+        await (db as any).wipeTransactionData();
+      }
+      setSuccess('All transactional data has been successfully wiped.');
+      setWipePasscode('');
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err) {
+      console.error(err);
+      setWipeError('Failed to wipe transaction data.');
+    } finally {
+      setIsWiping(false);
+    }
+  };
 
   // Personnel state
   const [users, setUsers] = useState<User[]>([]);
@@ -668,6 +701,60 @@ export default function SettingsPage() {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+
+        {/* Danger Zone */}
+        <div className="glass-panel rounded-3xl p-6 shadow-md bg-white dark:bg-[#0b1120] border border-red-200 dark:border-red-900/50 mt-2">
+          <h2 className="text-base font-black tracking-tight mb-4 flex items-center gap-2 border-b border-red-100 dark:border-red-900/30 pb-3 text-red-600 dark:text-red-500">
+            <Trash2 className="w-5 h-5" /> Danger Zone: Factory Reset Transactions
+          </h2>
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-2">
+                This action will permanently delete all daily operations data, including:
+              </p>
+              <ul className="list-disc pl-5 text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-4 space-y-1">
+                <li>All Orders and Order Items</li>
+                <li>All Payments and Pending Payments</li>
+                <li>All Kitchen Tickets</li>
+                <li>All Customer Ledger Entries</li>
+                <li>All Expenses and Staff Transactions</li>
+              </ul>
+              <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl flex gap-2 text-[10px] text-red-600 dark:text-red-400 font-bold">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>Your configuration (Menu Items, Categories, Tables, Settings, Personnel, and Customers) will remain intact.</span>
+              </div>
+            </div>
+            
+            <form onSubmit={handleWipeData} className="w-full md:w-72 bg-red-50/50 dark:bg-red-900/10 p-5 rounded-2xl border border-red-100 dark:border-red-900/20">
+              <label className="text-[10px] uppercase font-bold text-red-800 dark:text-red-400 tracking-wider block mb-2">
+                Confirm Admin Passcode
+              </label>
+              <input
+                type="password"
+                maxLength={4}
+                required
+                placeholder="Enter 4-digit PIN"
+                value={wipePasscode}
+                onChange={(e) => setWipePasscode(e.target.value)}
+                className="w-full bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800/50 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none mb-3"
+              />
+              
+              {wipeError && (
+                <div className="mb-3 text-[10px] text-red-600 font-bold bg-red-100 p-2 rounded flex items-center gap-1">
+                  <X className="w-3 h-3" /> {wipeError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isWiping}
+                className="w-full py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 font-black text-xs transition-colors active-press flex items-center justify-center gap-2"
+              >
+                {isWiping ? 'Wiping...' : 'Wipe All Transactions'}
+              </button>
+            </form>
           </div>
         </div>
 

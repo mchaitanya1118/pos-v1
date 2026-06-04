@@ -22,10 +22,11 @@ import {
   Image as ImageIcon,
   Upload,
   UploadCloud,
-  Wand2
+  Wand2,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { supabase } from '@/lib/db/supabase-db';
-import confetti from 'canvas-confetti';
 
 export default function MenuPage() {
   const { activeSettings } = useSessionStore();
@@ -64,6 +65,7 @@ export default function MenuPage() {
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Input states for form
   const [name, setName] = useState('');
@@ -356,6 +358,7 @@ export default function MenuPage() {
       }
 
       // Confetti burst
+      const confetti = (await import('canvas-confetti')).default;
       confetti({ particleCount: 180, spread: 90 });
 
       // Clean up modal states
@@ -381,175 +384,8 @@ export default function MenuPage() {
     }
   };
 
-  const currencySymbol = activeSettings?.currency === 'INR' ? '₹' : '$';
-
-  return (
-    <Navigation activeTab="menu">
-      <div className="flex-1 flex flex-col gap-6">
-        
-        {/* Header controller dashboard */}
-        <div className="glass-panel p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 shadow-sm select-none">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
-              <ChefHat className="w-6 h-6 text-indigo-500" /> Menu Catalog Manager
-            </h1>
-            <p className="text-xs font-semibold text-slate-400 mt-1">
-              Add dishes, edit prices, descriptions, and toggle stock availability
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto self-stretch md:self-auto shrink-0 select-none">
-            <button
-              type="button"
-              onClick={() => {
-                setAiStep(1);
-                setAiError(null);
-                setMenuImageBase64(null);
-                setAiGeneratedMenu(null);
-                setShowAIModal(true);
-              }}
-              className="px-5 py-3 rounded-2xl bg-[#0b4f48] hover:bg-[#083d37] text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-[#0b4f48]/15 active-press transition-all w-full sm:w-auto justify-center cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-emerald-350 animate-pulse" /> AI Menu Generator
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowAddModal(true)}
-              className="px-5 py-3 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-500 font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-600/20 active-press transition-all w-full sm:w-auto justify-center cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Add Menu Item
-            </button>
-          </div>
-        </div>
-
-        {/* Filters control block */}
-        <div className="glass-panel p-4 rounded-3xl flex flex-col md:flex-row gap-3 items-center shrink-0 shadow-sm select-none">
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search dishes by name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl py-2.5 pl-10 pr-4 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent transition-all"
-            />
-          </div>
-
-          <div className="w-full md:w-56">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="all">All Categories</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Database List Table */}
-        {menuItems.length === 0 ? (
-          <div className="glass-panel rounded-3xl p-16 text-center flex-1 flex flex-col items-center justify-center">
-            <ChefHat className="w-12 h-12 text-slate-400 mb-4 animate-bounce" />
-            <p className="text-slate-500 dark:text-slate-400 font-semibold">No active menu items catalog loaded.</p>
-          </div>
-        ) : (
-          <div className="glass-panel rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-750 font-bold uppercase tracking-wider text-slate-500 text-[9px] select-none">
-                    <th className="p-4">Item Details</th>
-                    <th className="p-4">Category</th>
-                    <th className="p-4 text-right">Price</th>
-                    <th className="p-4 text-center">Availability Status</th>
-                    <th className="p-4 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-                  {filteredMenuItems.map((item) => {
-                    const itemCat = categories.find(c => c.id === item.categoryId)?.name || 'General';
-                    const isEditingThis = editingItem?.id === item.id;
-                    
-                    return (
-                      <React.Fragment key={item.id}>
-                        <tr className={`${isEditingThis ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'hover:bg-slate-200/20 dark:hover:bg-slate-800/10'} font-medium transition-colors`}>
-                          {/* Rounded thumbnail and text info */}
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 shrink-0">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" />
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">{item.name}</h4>
-                                <p className="text-[10px] text-slate-400 line-clamp-1 max-w-xs">{item.description}</p>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="p-4">
-                            <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 select-none">
-                              {itemCat}
-                            </span>
-                          </td>
-
-                          <td className="p-4 text-right font-black text-slate-900 dark:text-white text-sm">
-                            {currencySymbol}{item.price.toFixed(2)}
-                          </td>
-
-                          {/* Visual stock availability toggle */}
-                          <td className="p-4 text-center select-none">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleAvailability(item)}
-                              className={`px-3 py-1.5 rounded-2xl text-[9px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1 transition-all active-press ${
-                                item.isAvailable
-                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                  : 'bg-red-500/15 text-red-500'
-                              }`}
-                            >
-                              {item.isAvailable ? (
-                                <>
-                                  <Eye className="w-3.5 h-3.5" /> In Stock
-                                </>
-                              ) : (
-                                <>
-                                  <EyeOff className="w-3.5 h-3.5" /> Out of Stock
-                                </>
-                              )}
-                            </button>
-                          </td>
-
-                          {/* Actions */}
-                          <td className="p-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleStartEdit(item)}
-                                className={`p-2 rounded transition-all active-press ${isEditingThis ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-500/10 text-indigo-500 hover:bg-indigo-600 hover:text-white'}`}
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteItem(item.id)}
-                                className="p-2 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all active-press"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-
-                        {/* Expandable Inline Edit Form */}
-                        {isEditingThis && (
-                          <tr className="bg-slate-50/50 dark:bg-slate-800/30">
-                            <td colSpan={5} className="p-6 border-b border-slate-200 dark:border-slate-800/60">
-                              <form onSubmit={handleSaveEdit} className="w-full max-w-2xl mx-auto animate-scale-in">
+  const renderEditForm = (item: MenuItem) => (
+<form onSubmit={handleSaveEdit} className="w-full max-w-2xl mx-auto animate-scale-in">
                                 <h3 className="font-extrabold text-sm text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                   <Edit2 className="w-4 h-4 text-indigo-500" /> Quick Edit: {item.name}
                                 </h3>
@@ -665,6 +501,195 @@ export default function MenuPage() {
                                   </div>
                                 </div>
                               </form>
+);
+
+  const currencySymbol = activeSettings?.currency === 'INR' ? '₹' : '$';
+
+  return (
+    <Navigation activeTab="menu">
+      <div className="flex-1 flex flex-col gap-6">
+        
+        {/* Header controller dashboard */}
+        <div className="glass-panel p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 shadow-sm select-none">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
+              <ChefHat className="w-6 h-6 text-indigo-500" /> Menu Catalog Manager
+            </h1>
+            <p className="text-xs font-semibold text-slate-400 mt-1">
+              Add dishes, edit prices, descriptions, and toggle stock availability
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto self-stretch md:self-auto shrink-0 select-none">
+            <button
+              type="button"
+              onClick={() => {
+                setAiStep(1);
+                setAiError(null);
+                setMenuImageBase64(null);
+                setAiGeneratedMenu(null);
+                setShowAIModal(true);
+              }}
+              className="px-5 py-3 rounded-2xl bg-[#0b4f48] hover:bg-[#083d37] text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-[#0b4f48]/15 active-press transition-all w-full sm:w-auto justify-center cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-350 animate-pulse" /> AI Menu Generator
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="px-5 py-3 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-500 font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-600/20 active-press transition-all w-full sm:w-auto justify-center cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Add Menu Item
+            </button>
+          </div>
+        </div>
+
+        {/* Filters control block */}
+        <div className="glass-panel p-4 rounded-3xl flex flex-col md:flex-row gap-3 items-center shrink-0 shadow-sm select-none justify-between">
+          <div className="flex flex-col md:flex-row gap-3 items-center w-full md:w-auto">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search dishes by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl py-2.5 pl-10 pr-4 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent transition-all"
+              />
+            </div>
+            <div className="w-full md:w-56">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <option value="all">All Categories</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex bg-slate-100 dark:bg-slate-800/60 p-1 rounded-2xl w-full md:w-auto self-end md:self-auto">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            >
+              <List className="w-4 h-4" /> <span className="md:hidden">List</span>
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            >
+              <LayoutGrid className="w-4 h-4" /> <span className="md:hidden">Grid</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Database List Table */}
+        {menuItems.length === 0 ? (
+          <div className="glass-panel rounded-3xl p-16 text-center flex-1 flex flex-col items-center justify-center">
+            <ChefHat className="w-12 h-12 text-slate-400 mb-4 animate-bounce" />
+            <p className="text-slate-500 dark:text-slate-400 font-semibold">No active menu items catalog loaded.</p>
+          </div>
+        ) : (
+          viewMode === 'list' ? (
+          <div className="glass-panel rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md">
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-750 font-bold uppercase tracking-wider text-slate-500 text-[9px] select-none">
+                    <th className="p-4">Item Details</th>
+                    <th className="p-4">Category</th>
+                    <th className="p-4 text-right">Price</th>
+                    <th className="p-4 text-center">Availability Status</th>
+                    <th className="p-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
+                  {filteredMenuItems.map((item) => {
+                    const itemCat = categories.find(c => c.id === item.categoryId)?.name || 'General';
+                    const isEditingThis = editingItem?.id === item.id;
+                    
+                    return (
+                      <React.Fragment key={item.id}>
+                        <tr className={`${isEditingThis ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'hover:bg-slate-200/20 dark:hover:bg-slate-800/10'} font-medium transition-colors`}>
+                          {/* Rounded thumbnail and text info */}
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" loading="lazy" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">{item.name}</h4>
+                                <p className="text-[10px] text-slate-400 line-clamp-1 max-w-xs">{item.description}</p>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="p-4">
+                            <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 select-none">
+                              {itemCat}
+                            </span>
+                          </td>
+
+                          <td className="p-4 text-right font-black text-slate-900 dark:text-white text-sm">
+                            {currencySymbol}{item.price.toFixed(2)}
+                          </td>
+
+                          {/* Visual stock availability toggle */}
+                          <td className="p-4 text-center select-none">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleAvailability(item)}
+                              className={`px-3 py-1.5 rounded-2xl text-[9px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1 transition-all active-press ${
+                                item.isAvailable
+                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                  : 'bg-red-500/15 text-red-500'
+                              }`}
+                            >
+                              {item.isAvailable ? (
+                                <>
+                                  <Eye className="w-3.5 h-3.5" /> In Stock
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="w-3.5 h-3.5" /> Out of Stock
+                                </>
+                              )}
+                            </button>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEdit(item)}
+                                className={`p-2 rounded transition-all active-press ${isEditingThis ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-500/10 text-indigo-500 hover:bg-indigo-600 hover:text-white'}`}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-2 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all active-press"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Expandable Inline Edit Form */}
+                        {isEditingThis && (
+                          <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                            <td colSpan={5} className="p-6 border-b border-slate-200 dark:border-slate-800/60">
+                              {renderEditForm(item)}
                             </td>
                           </tr>
                         )}
@@ -675,7 +700,59 @@ export default function MenuPage() {
               </table>
             </div>
           </div>
-        )}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredMenuItems.map(item => {
+              const itemCat = categories.find(c => c.id === item.categoryId)?.name || 'General';
+              const isEditingThis = editingItem?.id === item.id;
+              
+              if (isEditingThis) {
+                return (
+                  <div key={item.id} className="glass-panel rounded-3xl p-5 shadow-md flex flex-col col-span-full xl:col-span-2 relative animate-scale-in">
+                    {renderEditForm(item)}
+                  </div>
+                );
+              }
+
+              return (
+                <div key={item.id} className="glass-panel rounded-3xl p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow select-none">
+                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    <img src={item.imageUrl} alt={item.name} className="object-cover w-full h-full" loading="lazy" />
+                    <div className="absolute top-2 right-2">
+                      <span className="px-2 py-1 rounded-full text-[9px] font-black uppercase bg-slate-900/50 backdrop-blur-md text-white shadow-sm">
+                        {itemCat}
+                      </span>
+                    </div>
+                    <div className="absolute bottom-2 left-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAvailability(item)}
+                        className={`px-2 py-1 rounded-full text-[9px] font-black uppercase inline-flex items-center gap-1 backdrop-blur-md ${item.isAvailable ? 'bg-emerald-500/80 text-white' : 'bg-red-500/80 text-white'}`}
+                      >
+                        {item.isAvailable ? <><Eye className="w-3 h-3" /> In Stock</> : <><EyeOff className="w-3 h-3" /> Out</>}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex justify-between items-start gap-2 mb-1">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm line-clamp-1">{item.name}</h4>
+                      <span className="font-black text-slate-900 dark:text-white text-sm shrink-0">{currencySymbol}{item.price.toFixed(2)}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 line-clamp-2 mb-3 flex-1">{item.description}</p>
+                    <div className="flex items-center gap-2 mt-auto">
+                      <button onClick={() => handleStartEdit(item)} className="flex-1 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs flex items-center justify-center gap-1 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors active-press">
+                        <Edit2 className="w-3.5 h-3.5" /> Edit
+                      </button>
+                      <button onClick={() => handleDeleteItem(item.id)} className="w-10 h-10 shrink-0 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors active-press">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
 
         {/* ADD MENU ITEM MODAL */}
 
@@ -743,7 +820,7 @@ export default function MenuPage() {
                   <div className="flex flex-col items-center justify-center py-6 select-none">
                     <div className="w-full max-w-sm rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 relative bg-white dark:bg-[#0b1120] shadow-xl">
                       {/* Scaled Preview */}
-                      <img src={menuImageBase64} alt="Menu Preview" className="w-full h-64 object-cover filter brightness-[0.75]" />
+                      <img src={menuImageBase64} alt="Menu Preview" className="w-full h-64 object-cover filter brightness-[0.75]" loading="lazy" />
                       
                       {/* Laser scanning moving bar */}
                       <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-teal-400 to-transparent shadow-[0_0_12px_#2dd4bf] animate-bounce z-10" style={{ top: '10%', animationDuration: '3s' }}></div>

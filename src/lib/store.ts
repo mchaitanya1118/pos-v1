@@ -27,7 +27,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   loadSession: async () => {
     try {
       set({ isLoading: true });
-      const settings = await db.getSettings();
       
       let theme: 'light' | 'dark' = 'dark';
       let isAuthenticated = false;
@@ -43,8 +42,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         }
       }
 
-      set({ activeSettings: settings, theme: 'dark', isAuthenticated, operatorRole, operatorName, isLoading: false });
+      set({ theme: 'dark', isAuthenticated, operatorRole, operatorName, isLoading: false });
       
+      // Load settings asynchronously to not block initial app rendering
+      db.getSettings().then(settings => {
+        set({ activeSettings: settings });
+      }).catch(err => {
+        console.error("Failed to fetch settings in background", err);
+      });
+
       // Enforce light mode class on html root element
       if (typeof window !== 'undefined') {
         document.documentElement.classList.remove('dark');

@@ -256,4 +256,20 @@ export const db = {
       mockDb.deleteStaffTransaction(id);
     }
   },
+
+  // Database Lifecycle & Utilities
+  onDatabaseUpdate: (callback: () => void): (() => void) => {
+    if (isSupabaseConfigured) {
+      return supabaseDb.onDatabaseUpdate(callback);
+    } else {
+      return mockDb.onDatabaseUpdate(callback);
+    }
+  },
+  wipeTransactionData: async (): Promise<void> => {
+    if (isSupabaseConfigured) {
+      await supabaseDb.wipeTransactionData();
+    } else {
+      await mockDb.wipeTransactionData();
+    }
+  },
 };

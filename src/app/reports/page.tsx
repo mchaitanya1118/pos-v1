@@ -18,9 +18,7 @@ import {
   Briefcase,
   AlertCircle,
   ArrowRight,
-  ShieldAlert
 } from 'lucide-react';
-import jsPDF from 'jspdf';
 
 export default function ReportsPage() {
   const { activeSettings } = useSessionStore();
@@ -189,7 +187,8 @@ export default function ReportsPage() {
   };
 
   // Compile detailed statement PDF using jsPDF
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
+    const { default: jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     const currency = activeSettings?.currency === 'INR' ? 'Rs' : '$';
 

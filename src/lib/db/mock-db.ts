@@ -349,4 +349,41 @@ export const mockDb = {
     const list = mockDb.getStaffTransactions().filter(t => t.id !== id);
     setItem<StaffTransaction[]>('staff_transactions', list);
   },
+
+  // Real-time Database Sync
+  onDatabaseUpdate: (callback: () => void): (() => void) => {
+    if (!isBrowser()) return () => {};
+    const listener = (event: StorageEvent) => {
+      if (event.key && event.key.startsWith('pos_')) {
+        callback();
+      }
+    };
+    window.addEventListener('storage', listener);
+    return () => {
+      window.removeEventListener('storage', listener);
+    };
+  },
+
+  // Wipe Transactional Data
+  wipeTransactionData: async (): Promise<void> => {
+    setItem<Order[]>('orders', []);
+    setItem<OrderItem[]>('order_items', []);
+    setItem<Payment[]>('payments', []);
+    setItem<PendingPayment[]>('pending_payments', []);
+    setItem<CustomerLedger[]>('customer_ledger', []);
+    setItem<Expense[]>('expenses', []);
+    setItem<KitchenTicket[]>('kitchen_tickets', []);
+    setItem<StaffTransaction[]>('staff_transactions', []);
+    setItem<AuditLog[]>('audit_logs', []);
+    
+    // Reset all tables to available
+    const tables = mockDb.getTables().map(t => ({
+      ...t,
+      status: 'available' as const,
+      runningOrderId: null,
+      occupiedAt: null,
+      mergedWithTableId: null
+    }));
+    setItem<Table[]>('tables', tables);
+  },
 };

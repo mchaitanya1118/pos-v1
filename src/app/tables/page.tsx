@@ -60,7 +60,14 @@ export default function TablesPage() {
       setCurrentTime(new Date());
     }, 10000);
 
-    return () => clearInterval(interval);
+    const unsubscribe = db.onDatabaseUpdate(() => {
+      loadData();
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, []);
 
   // Recalculate selected table order details when selected table or orders update

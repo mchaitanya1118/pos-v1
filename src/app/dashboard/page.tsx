@@ -18,21 +18,11 @@ import {
   Calendar,
   Layers
 } from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  Legend
-} from 'recharts';
+import dynamic from 'next/dynamic';
+
+const SalesAreaChart = dynamic(() => import('@/components/DashboardCharts').then(mod => mod.SalesAreaChart), { ssr: false });
+const PaymentPieChart = dynamic(() => import('@/components/DashboardCharts').then(mod => mod.PaymentPieChart), { ssr: false });
+const ExpenseBarChart = dynamic(() => import('@/components/DashboardCharts').then(mod => mod.ExpenseBarChart), { ssr: false });
 
 export default function DashboardPage() {
   const { activeSettings } = useSessionStore();
@@ -78,6 +68,10 @@ export default function DashboardPage() {
       }
     };
     loadDashboardData();
+    const unsubscribe = db.onDatabaseUpdate(() => {
+      loadDashboardData();
+    });
+    return unsubscribe;
   }, []);
 
   // MATHEMATICAL METRICS COMPUTATION (TODAY'S SUMMARY)
@@ -421,21 +415,7 @@ export default function DashboardPage() {
               </div>
               
               <div className="flex-1 w-full h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartSalesTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366F1" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#6366F1" stopOpacity={0.0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.15} />
-                    <XAxis dataKey="date" stroke="#94A3B8" fontSize={9} fontWeight="bold" tickLine={false} />
-                    <YAxis stroke="#94A3B8" fontSize={9} fontWeight="bold" tickLine={false} />
-                    <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }} />
-                    <Area type="monotone" dataKey="Sales" stroke="#6366F1" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <SalesAreaChart data={chartSalesTrend} />
               </div>
             </div>
 
@@ -444,24 +424,7 @@ export default function DashboardPage() {
               <h3 className="font-extrabold text-sm text-slate-800 dark:text-white mb-4 select-none">Payment Methods Share</h3>
               
               <div className="flex-1 h-[200px] flex items-center justify-center relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartPaymentsDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
-                      {chartPaymentsDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => `${value}%`} contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <PaymentPieChart data={chartPaymentsDistribution} colors={COLORS} />
               </div>
 
               {/* Pie Legends */}
@@ -483,19 +446,7 @@ export default function DashboardPage() {
               <h3 className="font-extrabold text-sm text-slate-800 dark:text-white mb-4 select-none">Expense Outflow Allocations</h3>
               
               <div className="flex-1 w-full h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartExpensesBreakdown} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.15} />
-                    <XAxis dataKey="name" stroke="#94A3B8" fontSize={9} fontWeight="bold" tickLine={false} />
-                    <YAxis stroke="#94A3B8" fontSize={9} fontWeight="bold" tickLine={false} />
-                    <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }} />
-                    <Bar dataKey="Amount" fill="#6366F1" radius={[8, 8, 0, 0]}>
-                      {chartExpensesBreakdown.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <ExpenseBarChart data={chartExpensesBreakdown} colors={COLORS} />
               </div>
             </div>
 

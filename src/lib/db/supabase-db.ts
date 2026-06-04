@@ -503,4 +503,38 @@ export const supabaseDb = {
     const { error } = await supabase.from('staff_transactions').delete().eq('id', id);
     if (error) throw error;
   },
+
+  // Real-time Database Sync
+  onDatabaseUpdate: (callback: () => void): (() => void) => {
+    if (!supabase) return () => {};
+    const channel = supabase.channel('public-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        callback();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  },
+
+  // Wipe Transactional Data
+  wipeTransactionData: async (): Promise<void> => {
+    if (!supabase) throw new Error("Supabase is not initialized");
+    const tablesToWipe = [
+      'order_items', 'payments', 'pending_payments',
+      'kitchen_tickets', 'orders', 'customer_ledger',
+      'expenses', 'staff_transactions', 'audit_logs'
+    ];
+    // Delete items first to avoid foreign key constraint errors (e.g. order_items depends on orders)
+    for (const tableName of tablesToWipe) {
+      await supabase.from(tableName).delete().neq('id', 'dummy_wipe_id');
+    }
+    // Reset all tables to available
+    await supabase.from('tables').update({
+      status: 'available',
+      running_order_id: null,
+      occupied_at: null,
+      merged_with_table_id: null
+    }).neq('id', 'dummy_wipe_id');
+  },
 };

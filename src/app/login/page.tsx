@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useSessionStore } from '@/lib/store';
 import { Delete } from 'lucide-react';
 
@@ -71,10 +72,15 @@ export default function LoginPage() {
   }, [handleKeyPress, handleDelete, handleClear]);
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4 relative"
-      style={{ backgroundImage: "url('/bg.png')" }}
-    >
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+      <Image
+        src="/bg.png"
+        alt="Background"
+        fill
+        className="object-cover object-center pointer-events-none"
+        priority
+      />
+      
       {/* Background Overlay to ensure readability and contrast */}
       <div className="absolute inset-0 bg-slate-900/10 dark:bg-slate-950/45 pointer-events-none"></div>
 

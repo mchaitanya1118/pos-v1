@@ -15,8 +15,6 @@ import {
   Plus, Minus, ArrowRight, Grid3X3, Clock, Receipt, Move, 
   GitMerge, Award, SlidersHorizontal, Delete, CheckSquare, PlusCircle 
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
-import jsPDF from 'jspdf';
 
 export default function PosPage() {
   const router = useRouter();
@@ -134,6 +132,10 @@ export default function PosPage() {
 
   useEffect(() => {
     loadData();
+    const unsubscribe = db.onDatabaseUpdate(() => {
+      loadData();
+    });
+    return unsubscribe;
   }, [tableParam]);
 
   // Sync tax percentage
@@ -354,6 +356,7 @@ export default function PosPage() {
       }
 
       // Confetti burst
+      const confetti = (await import('canvas-confetti')).default;
       confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
 
       setCheckoutOrder(null);
@@ -727,7 +730,7 @@ export default function PosPage() {
                       >
                         {item.imageUrl ? (
                           <div className="w-full h-24 rounded-xl overflow-hidden bg-slate-100">
-                            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                           </div>
                         ) : (
                           <div className="w-full h-24 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 font-extrabold text-xs">
