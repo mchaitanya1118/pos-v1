@@ -172,10 +172,10 @@ export default function KitchenPage() {
         </div>
 
         {/* Dynamic 4-Column Board */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-hidden select-none pb-4">
+        <div className="flex-1 flex overflow-x-auto lg:grid lg:grid-cols-4 gap-4 lg:overflow-hidden select-none pb-4 snap-x snap-mandatory">
           
           {/* COLUMN 1: NEW / QUEUED */}
-          <div className="flex flex-col bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl p-4 border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+          <div className="w-[85vw] md:w-[45vw] lg:w-auto shrink-0 snap-center lg:snap-align-none flex flex-col bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl p-4 border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
             <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-800 mb-3 shrink-0">
               <span className="text-xs font-black text-sky-500 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
@@ -206,7 +206,7 @@ export default function KitchenPage() {
           </div>
 
           {/* COLUMN 2: PREPARING */}
-          <div className="flex flex-col bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl p-4 border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+          <div className="w-[85vw] md:w-[45vw] lg:w-auto shrink-0 snap-center lg:snap-align-none flex flex-col bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl p-4 border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
             <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-800 mb-3 shrink-0">
               <span className="text-xs font-black text-amber-500 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
@@ -238,7 +238,7 @@ export default function KitchenPage() {
           </div>
 
           {/* COLUMN 3: READY / TO SERVE */}
-          <div className="flex flex-col bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl p-4 border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+          <div className="w-[85vw] md:w-[45vw] lg:w-auto shrink-0 snap-center lg:snap-align-none flex flex-col bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl p-4 border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
             <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-800 mb-3 shrink-0">
               <span className="text-xs font-black text-emerald-500 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -270,7 +270,7 @@ export default function KitchenPage() {
           </div>
 
           {/* COLUMN 4: COMPLETED / SERVED */}
-          <div className="flex flex-col bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl p-4 border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+          <div className="w-[85vw] md:w-[45vw] lg:w-auto shrink-0 snap-center lg:snap-align-none flex flex-col bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl p-4 border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
             <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-800 mb-3 shrink-0">
               <span className="text-xs font-black text-slate-500 flex items-center gap-1">
                 SERVED / HISTORY
